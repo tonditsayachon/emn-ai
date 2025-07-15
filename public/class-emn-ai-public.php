@@ -212,12 +212,10 @@ class Emn_Ai_Public
 		if (wp_is_post_revision($post->ID)) return;
 
 		if ($old_status === 'publish' && $new_status !== 'publish') {
-			$this->admin_instance->emn_json_generate_single($post->ID);
+			$file_path = WP_CONTENT_DIR . "/halal-ai/jsons/products/product_{$post->ID}.json";
+			unlink($file_path);
 		
-		} elseif ($old_status === 'publish' && $new_status !== 'publish') {
-			$this->on_product_delete($post->ID);
-	
-		}
+		} 
 		
 	}
 	
