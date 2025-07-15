@@ -124,7 +124,9 @@ class Emn_Ai_Admin
 		if (isset($_POST['emn_automation_button'])) {
 			if (check_admin_referer('emn_automation_action', 'emn_automation_nonce')) {
 				try {
-					$this->emn_run_automation();
+					// ตรวจสอบว่ามีการส่งค่า page_size หรือไม่
+					$page_size = isset($_POST['page_size']) ? intval($_POST['page_size']) : 10;
+					$this->emn_run_automation($page_size);
 
 					// Save current datetime
 					update_option('emn_ai_last_run_time', current_time('mysql'));
@@ -138,14 +140,34 @@ class Emn_Ai_Admin
 		}
 	}
 
-
-	public function emn_run_automation()
+	public function emn_get_page_size()
 	{
+		//แสดงจำนวนสินค้าทั้งหมดใน woocommerce
+		$product_count = wp_count_posts('product')->publish;
+		if ($product_count <= 0) {	
+			return 0; // ไม่มีสินค้า
+		}
+
+
+		if (isset($_POST['page_size'])) {
+			$page_size = intval($_POST['page_size']);
+			if ($page_size <= 0) {
+				$page_size = 10; // ค่าเริ่มต้นถ้าไม่ถูกต้อง
+			}
+			return $page_size;
+		}
+		return 10; // ค่าเริ่มต้น
+	}
+	public function emn_run_automation()
+	{	
+		$this->emn_get_page_size(); // เรียกใช้ฟังก์ชันที่คุณต้องการทำงาน
+	
 		$this->emn_query_product(); // เรียกใช้ฟังก์ชันที่คุณต้องการทำงาน
 
 
 	} //end of function
 	/// get max page (arg page size,page index) 
+
 	//	delete all json file
 	public function emn_query_product()
 	{
