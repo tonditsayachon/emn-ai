@@ -14,7 +14,7 @@
 ?>
 <div class="wrap">
 			<h1>EMN Automation</h1>
-			<form method="post" name="emn_automation_form" action="">
+			<form method="post" id="emn-automation-form" action="">
 				<?php wp_nonce_field('emn_automation_action', 'emn_automation_nonce'); ?>
 				<select name="page_size" id="">
 					<option value="10">10</option>
