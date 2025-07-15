@@ -164,6 +164,7 @@ class Emn_Ai
 		$this->loader->add_action('admin_menu', $plugin_admin, 'emn_ai_menu');
 
 		 // UPDATED AJAX hooks
+		 $this->loader->add_action('wp_ajax_emn_ajax_clear_json_directory', $plugin_admin, 'emn_ajax_clear_json_directory');
         $this->loader->add_action('wp_ajax_emn_ajax_get_total_products', $plugin_admin, 'emn_ajax_get_total_products');
         $this->loader->add_action('wp_ajax_emn_ajax_process_batch', $plugin_admin, 'emn_ajax_process_batch');
 	}

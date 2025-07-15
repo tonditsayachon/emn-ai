@@ -5,7 +5,6 @@
 
  #emn-progress-container {
     width: 100%;
-    background-color: #f3f3f3;  
     margin: 20px 0 20px 0;
 }
 
@@ -17,9 +16,17 @@
     width: 0%;
     height: 25px;
     background-color: #4caf50;
-    color: white;
+    color: #333;
     text-align: center;
     line-height: 25px;
     transition: width 0.3s;
     border-radius: 5px;
+}
+
+.progress-box {
+    background-color:#becbca;
+    border-radius: 5px;
+    overflow: hidden;
+    height: 25px;
+    padding:8px;
 }

@@ -15,10 +15,10 @@
 <div class="wrap">
 	<h1>EMN Automation</h1>
 	<!-- Progress Container -->
-	<div id="emn-progress-container" style="display: none; margin-top: 20px;">
-		<div style="margin-bottom: 10px;" id="emn-progress-status">รอเริ่มต้นการสร้างไฟล์...</div>
-		<div style="background-color: #f3f3f3; border-radius: 5px; overflow: hidden; height: 25px;">
-			<div id="emn-progress-bar" style="width: 0%; height: 100%; background-color: #4caf50; text-align: center; color: white; line-height: 25px; transition: width 0.3s;">
+	<div id="emn-progress-container">
+		<div id="emn-progress-status">รอเริ่มต้นการสร้างไฟล์...</div>
+		<div class="progress-box">
+			<div id="emn-progress-bar">
 				0%
 			</div>
 		</div>

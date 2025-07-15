@@ -55,7 +55,7 @@ class Emn_Ai_Admin
 	{
 		include_once plugin_dir_path(__FILE__) . 'partials/emn-ai-admin-display.php';
 	}
-
+	
 	/**
 	 * AJAX action to get the total number of products.
 	 */
