@@ -187,6 +187,7 @@ class Emn_Ai
 		// // Hook into product save and delete actions
 		$this->loader->add_action('save_post_product', $plugin_public, 'on_product_save', 10, 3);
 		$this->loader->add_action('before_delete_post', $plugin_public, 'on_product_delete');
+		$this->loader->add_action('transition_post_status', $plugin_public, 'on_product_status_change', 10, 3);
 
 
 	}

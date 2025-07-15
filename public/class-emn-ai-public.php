@@ -187,14 +187,9 @@ class Emn_Ai_Public
 
 		if (! $post || $post->post_type !== 'product') return;
 
-
-
 		// ป้องกัน autosave / revision
 		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
 		if ($post->post_type !== 'product') return;
-
-		// สร้าง nonce (หรือดึง nonce จาก admin session ถ้ามี context)
-	
 
 		// เรียก automation
 		$this->admin_instance->emn_json_generate_single($post_id);
@@ -210,7 +205,21 @@ class Emn_Ai_Public
 	
 	}
 
+	public function on_product_status_change($new_status, $old_status, $post)
+	{
+		if ($post->post_type !== 'product') return;
+		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+		if (wp_is_post_revision($post->ID)) return;
 
+		if ($old_status === 'publish' && $new_status !== 'publish') {
+			$this->admin_instance->emn_json_generate_single($post->ID);
+		
+		} elseif ($old_status === 'publish' && $new_status !== 'publish') {
+			$this->on_product_delete($post->ID);
+	
+		}
+		
+	}
 	
 	public function api_key_permission($request)
 	{
