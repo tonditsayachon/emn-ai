@@ -170,9 +170,9 @@ class Emn_Ai_Admin
 			$data = [
 				'id' => $product->get_id(),
 				'name' => $product->get_name(),
-				'price' => $product->get_price(),
 				'regular_price' => $product->get_regular_price(),
 				'sale_price' => $product->get_sale_price(),
+				'tiers_prices' => maybe_unserialize(get_post_meta($product_id, 'marketking_group_price_tiers', true)),
 				'sku' => $product->get_sku(),
 				'description' => $product->get_description(),
 				'short_description' => $product->get_short_description(),
@@ -181,6 +181,7 @@ class Emn_Ai_Admin
 				'tags' => wp_get_post_terms($product_id, 'product_tag', ['fields' => 'names']),
 				'acf_fields' => $this->emn_get_acf($product_id),
 				'updated_at' => date('Y-m-d H:i:s', $post_modified_time),
+			
 			];
 
 			if (!file_exists($output_dir)) {
