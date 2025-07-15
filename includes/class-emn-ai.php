@@ -163,8 +163,9 @@ class Emn_Ai
 		// Register the admin menu
 		$this->loader->add_action('admin_menu', $plugin_admin, 'emn_ai_menu');
 
-		// Register nonce for security
-		$this->loader->add_action('admin_init', $plugin_admin, 'emn_automation_nonce');
+		 // UPDATED AJAX hooks
+        $this->loader->add_action('wp_ajax_emn_ajax_get_total_products', $plugin_admin, 'emn_ajax_get_total_products');
+        $this->loader->add_action('wp_ajax_emn_ajax_process_batch', $plugin_admin, 'emn_ajax_process_batch');
 	}
 
 	/**
