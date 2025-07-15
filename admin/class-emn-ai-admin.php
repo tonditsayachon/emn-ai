@@ -55,7 +55,39 @@ class Emn_Ai_Admin
 	{
 		include_once plugin_dir_path(__FILE__) . 'partials/emn-ai-admin-display.php';
 	}
-	
+	public function emn_ajax_clear_json_directory()
+    {
+        check_ajax_referer('emn_automation_nonce', 'nonce');
+
+        $dir_path = WP_CONTENT_DIR . '/halal-ai/jsons/products/';
+        $files_deleted_count = 0;
+        $error_message = '';
+
+        try {
+            if (!is_dir($dir_path)) {
+                // If directory doesn't exist, we don't need to do anything.
+                // It will be created when the first file is generated.
+                wp_send_json_success(['message' => 'Directory did not exist. Nothing to clear.', 'deleted_count' => 0]);
+                return;
+            }
+
+            // Get all json files in the directory
+            $files = glob($dir_path . '*.json'); 
+
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    if (unlink($file)) {
+                        $files_deleted_count++;
+                    }
+                }
+            }
+            wp_send_json_success(['message' => 'Directory cleared successfully.', 'deleted_count' => $files_deleted_count]);
+
+        } catch (Exception $e) {
+            error_log('EMN AI - Error clearing directory: ' . $e->getMessage());
+            wp_send_json_error(['message' => 'An error occurred while clearing the directory.']);
+        }
+    }
 	/**
 	 * AJAX action to get the total number of products.
 	 */
@@ -103,6 +135,7 @@ class Emn_Ai_Admin
 		$processed_count = 0;
 
 		if ($query->have_posts()) {
+
 			foreach ($query->posts as $product_id) {
 				$this->emn_json_generate_single($product_id);
 				$processed_count++;

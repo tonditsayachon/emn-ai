@@ -23,10 +23,35 @@
     border-radius: 5px;
 }
 
-.progress-box {
-    background-color:#becbca;
+.emn-progress-bar-wrapper {
+    background-color:#d1dfdd;
     border-radius: 5px;
     overflow: hidden;
     height: 25px;
     padding:8px;
+}
+
+/* admin/css/emn-ai-admin.css */
+
+/* ซ่อน Spinner ในสถานะปกติ */
+#emn_automation_button .spinner {
+    display: none;
+    vertical-align: middle;
+    float: none; /* Override default WP spinner float */
+    margin: -2px 0 0 4px;
+}
+
+/* ทำให้ปุ่มมีสถานะ "กำลังทำงาน" */
+#emn_automation_button.is-busy {
+    /* คุณสามารถเลือกสีที่ต้องการได้, สีแดงมักใช้กับการยกเลิก */
+    background: #d63638 !important; /* A red color to indicate "Cancel" action */
+    border-color: #b02a2c !important;
+    color: #fff !important;
+    cursor: pointer;
+}
+
+/* ทำให้ Spinner แสดงผลเมื่อปุ่มมีคลาส .is-busy */
+#emn_automation_button.is-busy .spinner {
+    display: inline-block;
+    visibility: visible;
 }
