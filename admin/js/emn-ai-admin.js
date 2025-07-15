@@ -1,5 +1,3 @@
-(function ($) {
-    'use strict';
 
     $(function () {
         // Object to hold the state of the automation process
@@ -149,4 +147,4 @@
         }
     });
 
-})(jQuery);
+(jQuery);
