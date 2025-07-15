@@ -1,8 +1,10 @@
 (function ($) {
     'use strict';
 
+    $(function () {
+        console.log('EMN AI Admin script loaded.'); // 1. เช็คว่าไฟล์ถูกโหลดหรือไม่
 
-        // Object to hold the state of the automation process
+        // State object
         var automationState = {
             totalProducts: 0,
             processedProducts: 0,
@@ -13,14 +15,18 @@
             isProcessing: false
         };
 
+        // jQuery objects
+        var $form = $('#emn-automation-form');
         var $button = $('#emn_automation_button');
         var $dropdown = $('#page_size');
         var $progressContainer = $('#emn-progress-container');
         var $progressBar = $('#emn-progress-bar');
         var $progressStatus = $('#emn-progress-status');
 
-        $('#emn-automation-form').on('submit', function (e) {
+        $form.on('submit', function (e) {
             e.preventDefault();
+            console.log('Form submitted.'); // 2. เช็คว่าอีเวนต์ submit ทำงานหรือไม่
+
             if (automationState.isProcessing) {
                 cancelAutomation();
             } else {
@@ -29,13 +35,14 @@
         });
 
         function startAutomation() {
+            console.log('Starting automation...');
             automationState.isProcessing = true;
             automationState.isCancelled = false;
             automationState.pageSize = parseInt($dropdown.val(), 10);
             
             updateUiForProcessing();
 
-            // First, get the total number of products
+            console.log('Requesting total product count...');
             $.ajax({
                 url: emn_ai_ajax.ajax_url,
                 type: 'POST',
@@ -44,8 +51,11 @@
                     nonce: emn_ai_ajax.nonce,
                 },
                 success: function (response) {
+                    console.log('Get total products response:', response); // 3. เช็คการตอบกลับจากเซิร์ฟเวอร์
                     if (response.success) {
                         automationState.totalProducts = response.data.total;
+                        console.log('Total products:', automationState.totalProducts);
+
                         if (automationState.totalProducts === 0) {
                             $progressStatus.text('No products to process.');
                             resetUi();
@@ -57,15 +67,16 @@
 
                         updateProgressDisplay();
                         
-                        // Start processing the first batch
+                        console.log('Starting batch processing...');
                         processNextBatch();
                     } else {
-                        alert('Could not retrieve product count.');
+                        alert('Could not retrieve product count. Server response: ' + response.data);
                         resetUi();
                     }
                 },
-                error: function () {
-                    alert('An error occurred while getting product count.');
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.error('AJAX Error (get_total_products):', textStatus, errorThrown);
+                    alert('An error occurred while getting product count. Check the developer console (F12) for more details.');
                     resetUi();
                 }
             });
@@ -73,20 +84,23 @@
         
         function processNextBatch() {
             if (automationState.isCancelled) {
+                console.log('Process cancelled by user.');
                 $progressStatus.text('Process cancelled by user.');
                 resetUi();
                 return;
             }
 
             if (automationState.currentPage > automationState.totalPages) {
+                console.log('All batches complete.');
                 $progressStatus.text('Completed. Processed ' + automationState.totalProducts + ' products.');
                 resetUi();
-                // Reload to show the updated "Last Run" time
-                location.reload(); 
+                // We can uncomment the reload once everything works
+                // location.reload(); 
                 return;
             }
             
             var isLastBatch = (automationState.currentPage === automationState.totalPages);
+            console.log('Processing batch. Page: ' + automationState.currentPage + ' of ' + automationState.totalPages);
 
             $.ajax({
                 url: emn_ai_ajax.ajax_url,
@@ -99,30 +113,30 @@
                     is_last_batch: isLastBatch
                 },
                 success: function(response) {
+                    console.log('Process batch response:', response); // 4. เช็คการตอบกลับของแต่ละ batch
                     if (response.success) {
                         automationState.processedProducts += response.data.processed;
-                        // Ensure processed count doesn't exceed total
                         if(automationState.processedProducts > automationState.totalProducts) {
                            automationState.processedProducts = automationState.totalProducts;
                         }
-
                         updateProgressDisplay();
-
                         automationState.currentPage++;
-                        processNextBatch(); // Process the next page
+                        processNextBatch();
                     } else {
-                        alert('An error occurred during processing.');
+                        alert('An error occurred during processing. Server response: ' + response.data);
                         resetUi();
                     }
                 },
-                error: function() {
-                    alert('A critical error occurred. Please check the server logs.');
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('AJAX Error (process_batch):', textStatus, errorThrown);
+                    alert('A critical error occurred while processing. Check the developer console (F12).');
                     resetUi();
                 }
             });
         }
         
         function cancelAutomation() {
+            console.log('Attempting to cancel automation...');
             automationState.isCancelled = true;
             $button.val('Cancelling...').prop('disabled', true);
         }
@@ -137,9 +151,12 @@
         }
         
         function updateUiForProcessing() {
-            $button.val('Cancel').removeClass('button-primary').addClass('button-secondary');
+            $button.val('Cancel').removeClass('button-primary').addClass('button-secondary').prop('disabled', false);
             $dropdown.prop('disabled', true);
             $progressContainer.show();
+            // Reset progress bar at the start
+            $progressBar.css('width', '0%').text('0%');
+            $progressStatus.text('Initializing...');
         }
 
         function resetUi() {
@@ -147,6 +164,6 @@
             $button.val('Run Automation').removeClass('button-secondary').addClass('button-primary').prop('disabled', false);
             $dropdown.prop('disabled', false);
         }
-
+    });
 
 })(jQuery);
