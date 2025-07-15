@@ -13,23 +13,32 @@
  */
 ?>
 <div class="wrap">
-			<h1>EMN Automation</h1>
-			<form method="post" id="emn-automation-form" action="">
-				<?php wp_nonce_field('emn_automation_action', 'emn_automation_nonce'); ?>
-				<select name="page_size" id="">
-					<option value="10">10</option>
-					<option value="20">20</option>
-					<option value="50">50</option>
-					<option value="100">100</option>
-				</select>
-				<input type="submit" name="emn_automation_button" class="button button-primary" value="Run Automation" />
-			</form>
-			<?php
-			// แสดงเวลาที่กดล่าสุด
-			$last_run = get_option('emn_ai_last_run_time');
-			if ($last_run) {
-				echo '<p><strong>Last Run:</strong> ' . esc_html($last_run) . '</p>';
-			}
-			?>
+	<h1>EMN Automation</h1>
+	<!-- Progress Container -->
+	<div id="emn-progress-container" style="display: none; margin-top: 20px;">
+		<div style="margin-bottom: 10px;" id="emn-progress-status">รอเริ่มต้นการสร้างไฟล์...</div>
+		<div style="background-color: #f3f3f3; border-radius: 5px; overflow: hidden; height: 25px;">
+			<div id="emn-progress-bar" style="width: 0%; height: 100%; background-color: #4caf50; text-align: center; color: white; line-height: 25px; transition: width 0.3s;">
+				0%
+			</div>
 		</div>
+	</div>
+	<form method="post" id="emn-automation-form" action="">
+		<?php wp_nonce_field('emn_automation_action', 'emn_automation_nonce'); ?>
+		<select id="page_size">
+			<option value="10">10</option>
+			<option value="20">20</option>
+			<option value="50">50</option>
+			<option value="100">100</option>
+		</select>
+		<input type="submit" name="emn_automation_button" class="button button-primary" value="Run Automation" />
+	</form>
+	<?php
+	// แสดงเวลาที่กดล่าสุด
+	$last_run = get_option('emn_ai_last_run_time');
+	if ($last_run) {
+		echo '<p><strong>Last Run:</strong> ' . esc_html($last_run) . '</p>';
+	}
+	?>
+</div>
 <!-- This file should primarily consist of HTML with a little bit of PHP. -->

@@ -2,3 +2,23 @@
  * All of the CSS for your admin-specific functionality should be
  * included in this file.
  */
+
+ #emn-progress-container {
+    display: none;
+    margin-top: 20px;
+}
+
+#emn-progress-status {
+    margin-bottom: 10px;
+}
+
+#emn-progress-bar {
+    width: 0%;
+    height: 25px;
+    background-color: #4caf50;
+    color: white;
+    text-align: center;
+    line-height: 25px;
+    transition: width 0.3s;
+    border-radius: 5px;
+}
