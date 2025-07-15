@@ -1,6 +1,7 @@
 (function ($) {
     'use strict';
 
+
         // Object to hold the state of the automation process
         var automationState = {
             totalProducts: 0,
