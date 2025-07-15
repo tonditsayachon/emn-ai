@@ -4,8 +4,9 @@
  */
 
  #emn-progress-container {
-    display: none;
-    margin-top: 20px;
+    width: 100%;
+    background-color: #f3f3f3;  
+    margin: 20px 0 20px 0;
 }
 
 #emn-progress-status {
