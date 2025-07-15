@@ -1,4 +1,5 @@
 <?php
+
 /**
  * The admin-specific functionality of the plugin.
  *
@@ -15,104 +16,109 @@
 class Emn_Ai_Admin
 {
 
-    private $plugin_name;
-    private $version;
+	private $plugin_name;
+	private $version;
 
-    public function __construct($plugin_name, $version)
-    {
-        $this->plugin_name = $plugin_name;
-        $this->version = $version;
-    }
+	public function __construct($plugin_name, $version)
+	{
+		$this->plugin_name = $plugin_name;
+		$this->version = $version;
+	}
 
-    public function enqueue_styles()
-    {
-        wp_enqueue_style($this->plugin_name, plugin_dir_url(__FILE__) . 'css/emn-ai-admin.css', array(), $this->version, 'all');
-    }
+	public function enqueue_styles()
+	{
+		wp_enqueue_style($this->plugin_name, plugin_dir_url(__FILE__) . 'css/emn-ai-admin.css', array(), $this->version, 'all');
+	}
 
-    public function enqueue_scripts()
-    {
-        wp_enqueue_script($this->plugin_name, plugin_dir_url(__FILE__) . 'js/emn-ai-admin.js', array('jquery'), $this->version, false);
-        wp_localize_script($this->plugin_name, 'emn_ai_ajax', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('emn_automation_nonce')
-        ));
-    }
+	public function enqueue_scripts()
+	{
+		wp_enqueue_script($this->plugin_name, plugin_dir_url(__FILE__) . 'js/emn-ai-admin.js', array('jquery'), $this->version, false);
+		wp_localize_script($this->plugin_name, 'emn_ai_ajax', array(
+			'ajax_url' => admin_url('admin-ajax.php'),
+			'nonce' => wp_create_nonce('emn_automation_nonce')
+		));
+	}
 
-    public function emn_ai_menu()
-    {
-        add_menu_page(
-            __('EMN AI', 'emn-ai'),
-            __('EMN AI', 'emn-ai'),
-            'manage_options',
-            'emn-ai',
-            array($this, 'emn_ai_settings_page'),
-            'dashicons-admin-generic'
-        );
-    }
+	public function emn_ai_menu()
+	{
+		add_menu_page(
+			__('EMN AI', 'emn-ai'),
+			__('EMN AI', 'emn-ai'),
+			'manage_options',
+			'emn-ai',
+			array($this, 'emn_ai_settings_page'),
+			'dashicons-admin-generic'
+		);
+	}
 
-    public function emn_ai_settings_page()
-    {
-        include_once plugin_dir_path(__FILE__) . 'partials/emn-ai-admin-display.php';
-    }
+	public function emn_ai_settings_page()
+	{
+		include_once plugin_dir_path(__FILE__) . 'partials/emn-ai-admin-display.php';
+	}
 
-    /**
-     * AJAX action to get the total number of products.
-     */
-    public function emn_ajax_get_total_products()
-    {
-        check_ajax_referer('emn_automation_nonce', 'nonce');
+	/**
+	 * AJAX action to get the total number of products.
+	 */
+	public function emn_ajax_get_total_products()
+	{
+		check_ajax_referer('emn_automation_nonce', 'nonce');
 
-        $query = new WP_Query([
-            'post_type' => 'product',
-            'post_status' => 'publish',
-            'fields' => 'ids',
-            'posts_per_page' => -1,
-        ]);
+		$query = new WP_Query([
+			'post_type' => 'product',
+			'post_status' => 'publish',
+			'fields' => 'ids',
+			'posts_per_page' => -1,
+		]);
 
-        wp_send_json_success(['total' => $query->post_count]);
-    }
+		wp_send_json_success(['total' => $query->post_count]);
+	}
 
-    /**
-     * AJAX action to process a single batch of products.
-     */
-    public function emn_ajax_process_batch()
-    {
-        check_ajax_referer('emn_automation_nonce', 'nonce');
+	/**
+	 * AJAX action to process a single batch of products.
+	 */
+	public function emn_ajax_process_batch()
+	{
+		check_ajax_referer('emn_automation_nonce', 'nonce');
 
-        $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
-        $page_size = isset($_POST['page_size']) ? intval($_POST['page_size']) : 100;
+		$page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+		$page_size = isset($_POST['page_size']) ? intval($_POST['page_size']) : 100;
 
-        $args = [
-            'post_type' => 'product',
-            'post_status' => 'publish',
-            'fields' => 'ids',
-            'posts_per_page' => $page_size,
-            'paged' => $page,
-            'orderby' => 'ID',
-            'order' => 'ASC',
-        ];
+		// --- START: Added Security Check ---
+		// Sanitize and cap the page_size to prevent DoS attacks by malicious users.
+		// This ensures that the server isn't forced to query a huge number of posts at once.
+		$page_size = max(1, min($page_size, 100)); // Sets a reasonable min of 1 and max of 100
+		// --- END: Added Security Check ---
 
-        $query = new WP_Query($args);
-        $processed_count = 0;
+		$args = [
+			'post_type' => 'product',
+			'post_status' => 'publish',
+			'fields' => 'ids',
+			'posts_per_page' => $page_size,
+			'paged' => $page,
+			'orderby' => 'ID',
+			'order' => 'ASC',
+		];
 
-        if ($query->have_posts()) {
-            foreach ($query->posts as $product_id) {
-                $this->emn_json_generate_single($product_id);
-                $processed_count++;
-            }
-        }
-        wp_reset_postdata();
-        
-        // Update last run time at the end of the process (the JS will tell us when)
-        if (isset($_POST['is_last_batch']) && $_POST['is_last_batch'] === 'true') {
-            update_option('emn_ai_last_run_time', current_time('mysql'));
-        }
+		$query = new WP_Query($args);
+		$processed_count = 0;
 
-        wp_send_json_success(['processed' => $processed_count]);
-    }
+		if ($query->have_posts()) {
+			foreach ($query->posts as $product_id) {
+				$this->emn_json_generate_single($product_id);
+				$processed_count++;
+			}
+		}
+		wp_reset_postdata();
 
-    public function emn_json_generate_single($product_id)
-    {
+		// Update last run time at the end of the process (the JS will tell us when)
+		if (isset($_POST['is_last_batch']) && $_POST['is_last_batch'] === 'true') {
+			update_option('emn_ai_last_run_time', current_time('mysql'));
+		}
+
+		wp_send_json_success(['processed' => $processed_count]);
+	}
+	public function emn_json_generate_single($product_id)
+	{
 		try {
 			$product = wc_get_product($product_id);
 			if (!$product) return;
@@ -152,15 +158,15 @@ class Emn_Ai_Admin
 		} catch (Exception $e) {
 			error_log("EMN JSON Generate Error: " . $e->getMessage());
 		}
-    }
+	}
 
-    public function emn_get_acf($postid)
-    {
+	public function emn_get_acf($postid)
+	{
 		$acf_fields = [
 			"product_volume" => "",
-			"industry_specific_attributes" => ["type" => "","shape" => "","packaging" => "",],
-			"other_attributes" => ["storage_type" => "","specification" => "","manufacturer" => "","ingredients" => "","address" => "","place_of_origin" => "","product_type" => "","color" => "","feature" => "","brand_name" => "","shelf_life" => "","hs_code" => "",],
-			"packaging_and_delivery" => ["packaging_details" => "","port" => "","selling_units" => "","single_package_size" => "","single_gross_weight" => "",],
+			"industry_specific_attributes" => ["type" => "", "shape" => "", "packaging" => "",],
+			"other_attributes" => ["storage_type" => "", "specification" => "", "manufacturer" => "", "ingredients" => "", "address" => "", "place_of_origin" => "", "product_type" => "", "color" => "", "feature" => "", "brand_name" => "", "shelf_life" => "", "hs_code" => "",],
+			"packaging_and_delivery" => ["packaging_details" => "", "port" => "", "selling_units" => "", "single_package_size" => "", "single_gross_weight" => "",],
 			"supply_ability" => ["supply_ability" => "",],
 		];
 		$acf_data = array();
@@ -174,5 +180,5 @@ class Emn_Ai_Admin
 			}
 		}
 		return $acf_data;
-    }
+	}
 }
