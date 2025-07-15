@@ -1,5 +1,6 @@
+(function ($) {
+    'use strict';
 
-    $(function () {
         // Object to hold the state of the automation process
         var automationState = {
             totalProducts: 0,
@@ -145,6 +146,6 @@
             $button.val('Run Automation').removeClass('button-secondary').addClass('button-primary').prop('disabled', false);
             $dropdown.prop('disabled', false);
         }
-    });
 
-(jQuery);
+
+})(jQuery);
