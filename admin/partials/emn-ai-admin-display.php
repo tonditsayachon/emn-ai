@@ -31,7 +31,7 @@
 			<option value="50">50</option>
 			<option value="100">100</option>
 		</select>
-		<input type="submit" name="emn_automation_button" class="button button-primary" value="Run Automation" />
+		<input type="submit" name="emn_automation_button" id="emn_automation_button" class="button button-primary" value="Run Automation" />
 	</form>
 	<?php
 	// แสดงเวลาที่กดล่าสุด
