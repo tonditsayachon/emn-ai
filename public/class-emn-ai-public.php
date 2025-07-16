@@ -298,66 +298,49 @@ class Emn_Ai_Public
 	 * @param WP_REST_Request $request ข้อมูลที่ส่งมาจาก API
 	 * @return WP_REST_Response|WP_Error
 	 */
-	function handle_api_brochure_generation_request(WP_REST_Request $request)
+
+
+
+	public function handle_api_brochure_generation_request(WP_REST_Request $request)
 	{
-		// 1. รับค่า product_id จาก JSON body (เหมือนเดิม)
+
 		$params = $request->get_json_params();
-		$product_id = isset($params['product_ids']) ? intval($params['product_ids']) : 0;
 
-		if (empty($product_id)) {
-			return new WP_Error('no_product_id', 'Product ID is required.', ['status' => 400]);
+		// 1. รับค่า product_ids และ email จาก request
+		$product_ids = isset($params['product_ids']) ? $params['product_ids'] : [];
+		$email = isset($params['email']) ? $params['email'] : '';
+
+		// 2. ตรวจสอบข้อมูลเบื้องต้น
+		if (empty($product_ids) || ! is_array($product_ids)) {
+			return new WP_Error('invalid_product_ids', 'Product IDs are required and must be an array.', ['status' => 400]);
 		}
 
-		// 2. อ่านข้อมูลสินค้าจากไฟล์ JSON (เหมือนเดิม)
-		$json_path = WP_CONTENT_DIR . '/halal-ai/jsons/products/product-' . $product_id . '.json';
-		if (!file_exists($json_path)) {
-			return new WP_Error('file_not_found', 'Product JSON file not found.', ['status' => 404]);
-		}
-		$product_data = json_decode(file_get_contents($json_path));
-
-		// 3. ★★★ เปลี่ยนวิธีโหลด Template และสร้าง HTML ★★★
-
-		// กำหนด Path ไปยังไฟล์ template .php ของคุณ
-		// เราจะใช้ plugin_dir_path เพื่อหาตำแหน่งที่ถูกต้องจากไฟล์หลักของปลั๊กอิน
-		// ** แก้ไข EMN_AI_PLUGIN_FILE เป็นค่าคงที่ (Constant) ของไฟล์หลักในปลั๊กอินคุณ **
-		$template_path = plugin_dir_path(EMN_AI_PLUGIN_FILE) . 'public/partials/emn-ai-brochure-template.php';
-
-		if (!file_exists($template_path)) {
-			return new WP_Error('template_not_found', 'The PHP brochure template was not found.', ['status' => 500]);
+		if (! is_email($email)) {
+			return new WP_Error('invalid_email', 'A valid email address is required.', ['status' => 400]);
 		}
 
-		// เตรียมข้อมูลที่จะส่งไปให้ Template ใช้
-		$image_url = get_the_post_thumbnail_url($product_data->id, 'large') ?: '';
-		$categories_string = !empty($product_data->categories) ? implode(', ', $product_data->categories) : '';
-
-		// เริ่มต้น Output Buffering
-		ob_start();
-
-		// เรียกใช้ไฟล์ template โดยตรง
-		// ตัวแปรทั้งหมดที่ประกาศไว้ก่อนหน้านี้ ($product_data, $image_url, etc.)
-		// จะสามารถถูกเรียกใช้ได้จากในไฟล์ template
-		include $template_path;
-
-		// ดึงเนื้อหา HTML ทั้งหมดที่ถูกสร้างโดย template ออกมา
-		$final_html = ob_get_clean();
-
-		// 4. สร้าง PDF และส่งกลับ Response (เหมือนเดิม)
-		try {
-			$mpdf = new \Mpdf\Mpdf(['default_font' => 'sarabun']);
-			$mpdf->WriteHTML($final_html);
-			$pdf_content_string = $mpdf->Output(null, 'S');
-			$pdf_base64 = base64_encode($pdf_content_string);
-		} catch (\Mpdf\MpdfException $e) {
-			return new WP_Error('pdf_error', 'Failed to generate PDF: ' . $e->getMessage(), ['status' => 500]);
-		}
-
-		$response_data = [
-			'success'  => true,
-			'filename' => 'brochure-product-' . $product_id . '.pdf',
-			'pdf_data' => $pdf_base64,
+		// 3. จัดตารางเวลาให้ Cron Job ทำงานเบื้องหลัง
+		// ส่งข้อมูล product_ids และ email ไปให้ job
+		$args = [
+			'product_ids' => array_map('intval', $product_ids), // ทำให้แน่ใจว่าเป็น array ของตัวเลข
+			'email'       => $email,
 		];
 
-		return new WP_REST_Response($response_data, 200);
+		// 'emn_ai_process_brochure_job' คือชื่อ hook ที่ cron job จะรอฟัง
+		// เราตั้งให้ทำงานทันที (time())
+		$scheduled = wp_schedule_single_event(time(), 'emn_ai_process_brochure_job', $args);
+
+		if ($scheduled === false) {
+			return new WP_Error('schedule_failed', 'Could not schedule the brochure generation job.', ['status' => 500]);
+		}
+
+		// 4. ตอบกลับทันทีว่ารับเรื่องแล้ว
+		$response_data = [
+			'success' => true,
+			'message' => 'Your brochure generation request has been received. The file(s) will be sent to ' . $email . ' shortly.',
+		];
+
+		return new WP_REST_Response($response_data, 202); // 202 Accepted หมายถึง "รับเรื่องแล้วแต่กำลังประมวลผล"
 	}
 
 	/**
