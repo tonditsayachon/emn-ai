@@ -128,7 +128,7 @@ class Emn_Ai_Public
 					'description'       => 'An array of product IDs.',
 					'type'              => 'array',
 					'items'             => array(
-						'type' => 'array',
+						'type' => 'integer',
 					),
 					/**
 					 * UPDATED VALIDATION CALLBACK
@@ -329,46 +329,76 @@ class Emn_Ai_Public
 	 */
 	public function process_brochure_generation_job($product_ids, $email)
 	{
-		// สายลับ #1: เช็คว่า Cron ทำงานและได้รับค่ามาถูกต้องหรือไม่
 		error_log('--- EMN AI Brochure Job Started ---');
 		error_log('Recipient Email: ' . $email);
 		error_log('Product IDs: ' . print_r($product_ids, true));
 
 		try {
-			// ... โค้ดสร้าง HTML ...
+			// --- START: รวบรวมข้อมูลสินค้าจากไฟล์ JSON ---
+			$products_data = []; // สร้าง Array ว่างๆ เพื่อรอเก็บข้อมูลสินค้า
+			$json_dir = WP_CONTENT_DIR . '/halal-ai/jsons/products/';
+
+			foreach ($product_ids as $product_id) {
+				$file_path = $json_dir . 'product_' . $product_id . '.json';
+				error_log('Reading file: ' . $file_path);
+
+				if (file_exists($file_path)) {
+					$json_content = file_get_contents($file_path);
+					$decoded_data = json_decode($json_content);
+
+					// ถ้าแปลง JSON สำเร็จ ให้เพิ่มข้อมูลลงใน Array หลัก
+					if (json_last_error() === JSON_ERROR_NONE) {
+						$products_data[] = $decoded_data;
+					} else {
+						error_log('!!! Invalid JSON for product ID: ' . $product_id);
+					}
+				} else {
+					error_log('!!! File not found for product ID: ' . $product_id);
+				}
+			}
+			// --- END: รวบรวมข้อมูลสินค้า ---
+
+
+			// --- สร้าง HTML โดยส่งข้อมูลที่รวบรวมได้ไปยังเทมเพลต ---
 			ob_start();
-			include plugin_dir_path(__FILE__) . 'partials/emn-ai-brochure-template.php';
-			$html = ob_get_clean();	
-			if (empty($html)) {
-				error_log('!!! HTML content is empty. Check the template file.');
+
+			// ตรวจสอบก่อนว่ามีข้อมูลที่จะแสดงผลหรือไม่
+			if (!empty($products_data)) {
+				// ทำให้เทมเพลตสามารถเข้าถึงตัวแปร $products_data ได้
+				include plugin_dir_path(dirname(__FILE__)) . 'public/partials/emn-ai-brochure-template.php';
+			} else {
+				error_log('!!! No valid product data found to generate brochure.');
+			}
+
+			$html = ob_get_clean();
+
+			if (empty(trim($html))) {
+				error_log('!!! HTML content is empty. Check the template file or if product data was found.');
 				return; // หยุดทำงานถ้าไม่มีเนื้อหา
 			}
-			
-			$mpdf = new \Mpdf\Mpdf();
+			// --- จบส่วนสร้าง HTML ---
+
+
+			$mpdf = new \Mpdf\Mpdf(['default_font' => 'garuda']); // เพิ่มการกำหนด font ที่รองรับภาษาไทย
 			$mpdf->WriteHTML($html);
 
 			$tmp_file_path = get_temp_dir() . 'brochure-' . wp_generate_uuid4() . '.pdf';
 			$mpdf->Output($tmp_file_path, \Mpdf\Output\Destination::FILE);
 
-			// สายลับ #2: เช็คว่าไฟล์ PDF ถูกสร้างขึ้นจริงหรือไม่
 			if (file_exists($tmp_file_path)) {
 				error_log('PDF file created successfully at: ' . $tmp_file_path);
 			} else {
-				error_log('!!! PDF file creation FAILED. Path: ' . $tmp_file_path);
-				return; // หยุดทำงานถ้าสร้างไฟล์ไม่ได้
+				error_log('!!! PDF file creation FAILED.');
+				return;
 			}
 
 			$subject     = 'Your Requested Product Brochure';
 			$message     = 'Please find your brochure attached.';
 			$attachments = array($tmp_file_path);
 
-			// สายลับ #3: เช็คก่อนส่ง
 			error_log('Preparing to send email to: ' . $email);
-
-			// ส่งอีเมล
 			$sent = wp_mail($email, $subject, $message, array(), $attachments);
 
-			// สายลับ #4: เช็คผลลัพธ์หลังส่ง
 			if ($sent) {
 				error_log('wp_mail() returned TRUE. Email should be sent.');
 			} else {
@@ -379,7 +409,6 @@ class Emn_Ai_Public
 			error_log('Temp PDF file deleted.');
 			error_log('--- EMN AI Brochure Job Finished ---');
 		} catch (\Exception $e) {
-			// สายลับ #5: ดักจับ Error ที่อาจเกิดขึ้น
 			error_log('!!! CRITICAL ERROR in Brochure Job: ' . $e->getMessage());
 		}
 	}
