@@ -116,6 +116,33 @@ class Emn_Ai_Public
 			'callback' => array($this, 'api_delete_json_file'),
 			'permission_callback' => array($this, 'api_key_permission')
 		]);
+
+		 register_rest_route('halal-ai/v1', '/brochures/generate', array(
+            'methods'  => 'POST',
+            'callback' => array($this, 'handle_brochure_generation_request'),
+            // ใช้ฟังก์ชัน permission เดิมที่คุณมีอยู่แล้ว
+            'permission_callback' => array($this, 'api_key_permission'),
+            'args'     => array(
+                'product_ids' => array(
+                    'required'          => true,
+                    'description'       => 'An array of product IDs.',
+                    'type'              => 'array',
+                    'items'             => array(
+                        'type' => 'integer',
+                    ),
+                    'validate_callback' => function($param, $request, $key) {
+                        return is_array($param) && count($param) > 0;
+                    }
+                ),
+                'email'       => array(
+                    'required'          => true,
+                    'description'       => 'The email address to send the brochure to.',
+                    'type'              => 'string',
+                    'format'            => 'email',
+                    'validate_callback' => 'is_email'
+                ),
+            ),
+        ));
 	}
 
 	private function get_json_dir()
@@ -249,4 +276,77 @@ class Emn_Ai_Public
 
 		return true;
 	}
+	/**
+	 * Handles the incoming API request to generate a brochure.
+	 * This function only schedules a background job and returns a response immediately.
+     * * @param   WP_REST_Request     $request    The request object.
+     * @return  WP_REST_Response                The response object.
+     * @since   1.0.0
+	 */
+    public function handle_brochure_generation_request( WP_REST_Request $request ) {
+        $product_ids = $request->get_param('product_ids');
+        $email       = sanitize_email($request->get_param('email'));
+        $sanitized_ids = array_map('absint', $product_ids);
+
+        // สร้างคิวงาน (Job) ให้ WP-Cron ทำงานเบื้องหลัง
+        // นี่คือหัวใจของการแก้ปัญหา Performance
+        wp_schedule_single_event(
+            time(), 
+            'emn_ai_trigger_brochure_generation', // ชื่อ Action ที่เราจะสร้างไว้รอรับ
+            array(
+                'product_ids' => $sanitized_ids,
+                'email' => $email,
+            )
+        );
+
+        // ตอบกลับทันทีว่า "รับเรื่องแล้ว"
+        return new WP_REST_Response(array(
+            'status'  => 202, // HTTP 202 Accepted
+            'message' => 'Brochure generation job has been scheduled. It will be sent to the email shortly.'
+        ), 202);
+    }
+
+    /**
+	 * Processes the brochure generation job via WP-Cron.
+	 * This is the function that does the heavy lifting.
+     * * @param   array   $product_ids    Array of sanitized product IDs.
+     * @param   string  $email          Sanitized email address.
+     * @since   1.0.0
+	 */
+    public function process_brochure_generation_job($product_ids, $email) {
+        try {
+            // ดึงข้อมูล HTML จากไฟล์ Template (แนะนำ)
+            ob_start();
+            // ส่งตัวแปรเข้าไปให้ Template ใช้
+            include(plugin_dir_path(__FILE__) . 'partials/emn-ai-brochure-template.php');
+            $html = ob_get_clean();
+
+            // สร้าง PDF ด้วย mPDF
+            $mpdf = new \Mpdf\Mpdf();
+            $mpdf->WriteHTML($html);
+            
+            // สร้างไฟล์ PDF ชั่วคราวเพื่อใช้เป็น Attachment
+            $tmp_file_path = get_temp_dir() . 'brochure-' . wp_generate_uuid4() . '.pdf';
+            $mpdf->Output($tmp_file_path, \Mpdf\Output\Destination::FILE);
+
+            // เตรียมข้อมูลส่งอีเมล
+            $subject     = 'Your Requested Product Brochure';
+            $message     = 'Please find your brochure attached.';
+            $headers     = array('Content-Type: text/html; charset=UTF-8');
+            $attachments = array($tmp_file_path);
+
+            // ส่งอีเมลพร้อมไฟล์แนบ
+            wp_mail($email, $subject, $message, $headers, $attachments);
+
+            // ลบไฟล์ PDF ชั่วคราวออกจาก Server
+            unlink($tmp_file_path);
+
+        } catch (\Mpdf\MpdfException $e) {
+            // Log error หาก mPDF ทำงานผิดพลาด
+            error_log('Plugin EMN AI - mPDF Error: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            // Log error ทั่วไป
+            error_log('Plugin EMN AI - Brochure Job Error: ' . $e->getMessage());
+        }
+    }
 }

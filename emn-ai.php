@@ -64,6 +64,11 @@ register_deactivation_hook( __FILE__, 'deactivate_emn_ai' );
  */
 require plugin_dir_path( __FILE__ ) . 'includes/class-emn-ai.php';
 
+
+// If you're using Composer, require the autoloader.
+if (file_exists(plugin_dir_path(__FILE__) . 'vendor/autoload.php')) {
+    require_once plugin_dir_path(__FILE__) . 'vendor/autoload.php';
+}
 /**
  * Begins execution of the plugin.
  *

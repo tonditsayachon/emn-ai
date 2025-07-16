@@ -167,6 +167,8 @@ class Emn_Ai
 		 $this->loader->add_action('wp_ajax_emn_ajax_clear_json_directory', $plugin_admin, 'emn_ajax_clear_json_directory');
         $this->loader->add_action('wp_ajax_emn_ajax_get_total_products', $plugin_admin, 'emn_ajax_get_total_products');
         $this->loader->add_action('wp_ajax_emn_ajax_process_batch', $plugin_admin, 'emn_ajax_process_batch');
+
+		
 	}
 
 	/**
@@ -188,6 +190,7 @@ class Emn_Ai
 		$this->loader->add_action('save_post_product', $plugin_public, 'on_product_save', 10, 3);
 		$this->loader->add_action('before_delete_post', $plugin_public, 'on_product_delete');
 		$this->loader->add_action('transition_post_status', $plugin_public, 'on_product_status_change', 10, 3);
+		$this->loader->add_action('emn_ai_trigger_brochure_generation', $plugin_public , 'process_brochure_generation_job', 10, 2);
 
 
 	}
