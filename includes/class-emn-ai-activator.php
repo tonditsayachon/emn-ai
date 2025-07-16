@@ -37,7 +37,7 @@ class Emn_Ai_Activator
     
     }
 
-        private static function create_initial_directories() {
+        private static function create_required_folders() {
         // ใช้ค่าคงที่ WP_CONTENT_DIR จะแม่นยำกว่า
         $base_path = WP_CONTENT_DIR . '/halal-ai/jsons/';
 
