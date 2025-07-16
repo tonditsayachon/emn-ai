@@ -117,32 +117,49 @@ class Emn_Ai_Public
 			'permission_callback' => array($this, 'api_key_permission')
 		]);
 
-		 register_rest_route('halal-ai/v1', '/brochures/generate', array(
-            'methods'  => 'POST',
-            'callback' => array($this, 'handle_brochure_generation_request'),
-            // ใช้ฟังก์ชัน permission เดิมที่คุณมีอยู่แล้ว
-            'permission_callback' => array($this, 'api_key_permission'),
-            'args'     => array(
-                'product_ids' => array(
-                    'required'          => true,
-                    'description'       => 'An array of product IDs.',
-                    'type'              => 'array',
-                    'items'             => array(
-                        'type' => 'array',
-                    ),
-                    'validate_callback' => function($param, $request, $key) {
-                        return is_array($param) && count($param) > 0;
-                    }
-                ),
-                'email'       => array(
-                    'required'          => true,
-                    'description'       => 'The email address to send the brochure to.',
-                    'type'              => 'string',
-                    'format'            => 'email',
-                    'validate_callback' => 'is_email'
-                ),
-            ),
-        ));
+		register_rest_route('halal-ai/v1', '/brochures/generate', array(
+			'methods'  => 'POST',
+			'callback' => array($this, 'handle_api_brochure_generation_request'),
+			// ใช้ฟังก์ชัน permission เดิมที่คุณมีอยู่แล้ว
+			'permission_callback' => array($this, 'api_key_permission'),
+			'args' => array(
+				'product_ids' => array(
+					'required'          => true,
+					'description'       => 'An array of product IDs.',
+					'type'              => 'array',
+					'items'             => array(
+						'type' => 'array',
+					),
+					/**
+					 * UPDATED VALIDATION CALLBACK
+					 * เราจะเปลี่ยนให้มันคืนค่าเป็น WP_Error object ซึ่งจะให้ข้อมูลที่ละเอียดกว่า
+					 */
+					'validate_callback' => function ($param, $request, $key) {
+						// เช็คก่อนเลยว่าค่าที่ได้มาเป็น Array หรือไม่
+						if (!is_array($param)) {
+							// ถ้าไม่ใช่ Array ให้ส่ง Error ที่เจาะจงกลับไป
+							return new WP_Error(
+								'rest_invalid_param',
+								'The product_ids parameter is not in a valid array format. Please ensure the Content-Type header is set to application/json.'
+							);
+						}
+						// เช็คว่า Array ที่ส่งมาว่างเปล่าหรือไม่
+						if (empty($param)) {
+							return new WP_Error('rest_invalid_param', 'The product_ids array cannot be empty.');
+						}
+						// ถ้าผ่านทุกอย่าง แสดงว่าถูกต้อง
+						return true;
+					}
+				),
+				'email'       => array(
+					'required'          => true,
+					'description'       => 'The email address to send the brochure to.',
+					'type'              => 'string',
+					'format'            => 'email',
+					'validate_callback' => 'is_email'
+				),
+			),
+		));
 	}
 
 	private function get_json_dir()
@@ -277,76 +294,113 @@ class Emn_Ai_Public
 		return true;
 	}
 	/**
-	 * Handles the incoming API request to generate a brochure.
-	 * This function only schedules a background job and returns a response immediately.
-     * * @param   WP_REST_Request     $request    The request object.
-     * @return  WP_REST_Response                The response object.
-     * @since   1.0.0
+	 * จัดการการสร้างโบรชัวร์ผ่าน REST API (ฉบับปรับปรุง)
+	 * @param WP_REST_Request $request ข้อมูลที่ส่งมาจาก API
+	 * @return WP_REST_Response|WP_Error
 	 */
-    public function handle_brochure_generation_request( WP_REST_Request $request ) {
-        $product_ids = $request->get_param('product_ids');
-        $email       = sanitize_email($request->get_param('email'));
-        $sanitized_ids = array_map('absint', $product_ids);
+	function handle_api_brochure_generation_request(WP_REST_Request $request)
+	{
+		// 1. รับค่า product_id จาก JSON body (เหมือนเดิม)
+		$params = $request->get_json_params();
+		$product_id = isset($params['product_id']) ? intval($params['product_id']) : 0;
 
-        // สร้างคิวงาน (Job) ให้ WP-Cron ทำงานเบื้องหลัง
-        // นี่คือหัวใจของการแก้ปัญหา Performance
-        wp_schedule_single_event(
-            time(), 
-            'emn_ai_trigger_brochure_generation', // ชื่อ Action ที่เราจะสร้างไว้รอรับ
-            array(
-                'product_ids' => $sanitized_ids,
-                'email' => $email,
-            )
-        );
+		if (empty($product_id)) {
+			return new WP_Error('no_product_id', 'Product ID is required.', ['status' => 400]);
+		}
 
-        // ตอบกลับทันทีว่า "รับเรื่องแล้ว"
-        return new WP_REST_Response(array(
-            'status'  => 202, // HTTP 202 Accepted
-            'message' => 'Brochure generation job has been scheduled. It will be sent to the email shortly.'
-        ), 202);
-    }
+		// 2. อ่านข้อมูลสินค้าจากไฟล์ JSON (เหมือนเดิม)
+		$json_path = WP_CONTENT_DIR . '/halal-ai/jsons/products/product-' . $product_id . '.json';
+		if (!file_exists($json_path)) {
+			return new WP_Error('file_not_found', 'Product JSON file not found.', ['status' => 404]);
+		}
+		$product_data = json_decode(file_get_contents($json_path));
 
-    /**
+		// 3. ★★★ เปลี่ยนวิธีโหลด Template และสร้าง HTML ★★★
+
+		// กำหนด Path ไปยังไฟล์ template .php ของคุณ
+		// เราจะใช้ plugin_dir_path เพื่อหาตำแหน่งที่ถูกต้องจากไฟล์หลักของปลั๊กอิน
+		// ** แก้ไข EMN_AI_PLUGIN_FILE เป็นค่าคงที่ (Constant) ของไฟล์หลักในปลั๊กอินคุณ **
+		$template_path = plugin_dir_path(EMN_AI_PLUGIN_FILE) . 'public/partials/emn-ai-brochure-template.php';
+
+		if (!file_exists($template_path)) {
+			return new WP_Error('template_not_found', 'The PHP brochure template was not found.', ['status' => 500]);
+		}
+
+		// เตรียมข้อมูลที่จะส่งไปให้ Template ใช้
+		$image_url = get_the_post_thumbnail_url($product_data->id, 'large') ?: '';
+		$categories_string = !empty($product_data->categories) ? implode(', ', $product_data->categories) : '';
+
+		// เริ่มต้น Output Buffering
+		ob_start();
+
+		// เรียกใช้ไฟล์ template โดยตรง
+		// ตัวแปรทั้งหมดที่ประกาศไว้ก่อนหน้านี้ ($product_data, $image_url, etc.)
+		// จะสามารถถูกเรียกใช้ได้จากในไฟล์ template
+		include $template_path;
+
+		// ดึงเนื้อหา HTML ทั้งหมดที่ถูกสร้างโดย template ออกมา
+		$final_html = ob_get_clean();
+
+		// 4. สร้าง PDF และส่งกลับ Response (เหมือนเดิม)
+		try {
+			$mpdf = new \Mpdf\Mpdf(['default_font' => 'sarabun']);
+			$mpdf->WriteHTML($final_html);
+			$pdf_content_string = $mpdf->Output(null, 'S');
+			$pdf_base64 = base64_encode($pdf_content_string);
+		} catch (\Mpdf\MpdfException $e) {
+			return new WP_Error('pdf_error', 'Failed to generate PDF: ' . $e->getMessage(), ['status' => 500]);
+		}
+
+		$response_data = [
+			'success'  => true,
+			'filename' => 'brochure-product-' . $product_id . '.pdf',
+			'pdf_data' => $pdf_base64,
+		];
+
+		return new WP_REST_Response($response_data, 200);
+	}
+
+	/**
 	 * Processes the brochure generation job via WP-Cron.
 	 * This is the function that does the heavy lifting.
-     * * @param   array   $product_ids    Array of sanitized product IDs.
-     * @param   string  $email          Sanitized email address.
-     * @since   1.0.0
+	 * * @param   array   $product_ids    Array of sanitized product IDs.
+	 * @param   string  $email          Sanitized email address.
+	 * @since   1.0.0
 	 */
-    public function process_brochure_generation_job($product_ids, $email) {
-        try {
-            // ดึงข้อมูล HTML จากไฟล์ Template (แนะนำ)
-            ob_start();
-            // ส่งตัวแปรเข้าไปให้ Template ใช้
+	public function process_brochure_generation_job($product_ids, $email)
+	{
+		try {
+			// ดึงข้อมูล HTML จากไฟล์ Template (แนะนำ)
+			ob_start();
+			// ส่งตัวแปรเข้าไปให้ Template ใช้
 			include plugin_dir_path(__FILE__) . 'partials/emn-ai-brochure-template.php';
-            $html = ob_get_clean();
+			$html = ob_get_clean();
 
-            // สร้าง PDF ด้วย mPDF
-            $mpdf = new \Mpdf\Mpdf();
-            $mpdf->WriteHTML($html);
-            
-            // สร้างไฟล์ PDF ชั่วคราวเพื่อใช้เป็น Attachment
-            $tmp_file_path = get_temp_dir() . 'brochure-' . wp_generate_uuid4() . '.pdf';
-            $mpdf->Output($tmp_file_path, \Mpdf\Output\Destination::FILE);
+			// สร้าง PDF ด้วย mPDF
+			$mpdf = new \Mpdf\Mpdf();
+			$mpdf->WriteHTML($html);
 
-            // เตรียมข้อมูลส่งอีเมล
-            $subject     = 'Your Requested Product Brochure';
-            $message     = 'Please find your brochure attached.';
-            $headers     = array('Content-Type: text/html; charset=UTF-8');
-            $attachments = array($tmp_file_path);
+			// สร้างไฟล์ PDF ชั่วคราวเพื่อใช้เป็น Attachment
+			$tmp_file_path = get_temp_dir() . 'brochure-' . wp_generate_uuid4() . '.pdf';
+			$mpdf->Output($tmp_file_path, \Mpdf\Output\Destination::FILE);
 
-            // ส่งอีเมลพร้อมไฟล์แนบ
-            wp_mail($email, $subject, $message, $headers, $attachments);
+			// เตรียมข้อมูลส่งอีเมล
+			$subject     = 'Your Requested Product Brochure';
+			$message     = 'Please find your brochure attached.';
+			$headers     = array('Content-Type: text/html; charset=UTF-8');
+			$attachments = array($tmp_file_path);
 
-            // ลบไฟล์ PDF ชั่วคราวออกจาก Server
-            unlink($tmp_file_path);
+			// ส่งอีเมลพร้อมไฟล์แนบ
+			wp_mail($email, $subject, $message, $headers, $attachments);
 
-        } catch (\Mpdf\MpdfException $e) {
-            // Log error หาก mPDF ทำงานผิดพลาด
-            error_log('Plugin EMN AI - mPDF Error: ' . $e->getMessage());
-        } catch (\Exception $e) {
-            // Log error ทั่วไป
-            error_log('Plugin EMN AI - Brochure Job Error: ' . $e->getMessage());
-        }
-    }
+			// ลบไฟล์ PDF ชั่วคราวออกจาก Server
+			unlink($tmp_file_path);
+		} catch (\Mpdf\MpdfException $e) {
+			// Log error หาก mPDF ทำงานผิดพลาด
+			error_log('Plugin EMN AI - mPDF Error: ' . $e->getMessage());
+		} catch (\Exception $e) {
+			// Log error ทั่วไป
+			error_log('Plugin EMN AI - Brochure Job Error: ' . $e->getMessage());
+		}
+	}
 }
