@@ -336,7 +336,14 @@ class Emn_Ai_Public
 
 		try {
 			// ... โค้ดสร้าง HTML ...
-
+			ob_start();
+			include plugin_dir_path(__FILE__) . 'partials/emn-ai-brochure-template.php';
+			$html = ob_get_clean();	
+			if (empty($html)) {
+				error_log('!!! HTML content is empty. Check the template file.');
+				return; // หยุดทำงานถ้าไม่มีเนื้อหา
+			}
+			
 			$mpdf = new \Mpdf\Mpdf();
 			$mpdf->WriteHTML($html);
 
