@@ -181,19 +181,20 @@ class Emn_Ai_Public
 	public function on_product_save($post_id, $post = null, $update = null)
 
 	{
+		if ($post->post_type !== 'product') return;
 		if (is_null($post)) {
 			$post = get_post($post_id);
 		}
 
-		if (! $post || $post->post_type !== 'product') return;
-
 		// ป้องกัน autosave / revision
 		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
-		if ($post->post_type !== 'product') return;
+		if (get_post_status($post_id) !== 'publish') {
+			return;
+		}
+
 
 		// เรียก automation
 		$this->admin_instance->emn_json_generate_single($post_id);
-
 	}
 
 	public function on_product_delete($post_id)
@@ -202,7 +203,6 @@ class Emn_Ai_Public
 		if ($post_type !== 'product') return;
 		$file_path = WP_CONTENT_DIR . "/halal-ai/jsons/products/product_{$post_id}.json";
 		unlink($file_path);
-	
 	}
 
 	public function on_product_status_change($new_status, $old_status, $post)
@@ -210,15 +210,16 @@ class Emn_Ai_Public
 		if ($post->post_type !== 'product') return;
 		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
 		if (wp_is_post_revision($post->ID)) return;
-
-		if ($old_status === 'publish' && $new_status !== 'publish') {
+		if ($new_status === 'publish' && $old_status !== 'publish') {
+			$this->generate_product_json($post->ID);
+		}
+		// กรณีที่ 2: สินค้าถูกยกเลิกการเผยแพร่ หรือย้ายไปถังขยะ (เปลี่ยนจาก publish เป็นสถานะอื่น)
+		elseif ($new_status !== 'publish' && $old_status === 'publish') {
 			$file_path = WP_CONTENT_DIR . "/halal-ai/jsons/products/product_{$post->ID}.json";
 			unlink($file_path);
-		
-		} 
-		
+		}
 	}
-	
+
 	public function api_key_permission($request)
 	{
 		global $wpdb;
