@@ -302,7 +302,7 @@ class Emn_Ai_Public
 	{
 		// 1. รับค่า product_id จาก JSON body (เหมือนเดิม)
 		$params = $request->get_json_params();
-		$product_id = isset($params['product_id']) ? intval($params['product_id']) : 0;
+		$product_id = isset($params['product_ids']) ? intval($params['product_ids']) : 0;
 
 		if (empty($product_id)) {
 			return new WP_Error('no_product_id', 'Product ID is required.', ['status' => 400]);
