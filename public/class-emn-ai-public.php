@@ -211,7 +211,7 @@ class Emn_Ai_Public
 		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
 		if (wp_is_post_revision($post->ID)) return;
 		if ($new_status === 'publish' && $old_status !== 'publish') {
-			$this->generate_product_json($post->ID);
+			$this->emn_json_generate_single($post->ID);
 		}
 		// กรณีที่ 2: สินค้าถูกยกเลิกการเผยแพร่ หรือย้ายไปถังขยะ (เปลี่ยนจาก publish เป็นสถานะอื่น)
 		elseif ($new_status !== 'publish' && $old_status === 'publish') {
