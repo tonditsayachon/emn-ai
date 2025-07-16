@@ -304,43 +304,37 @@ class Emn_Ai_Public
 	public function handle_api_brochure_generation_request(WP_REST_Request $request)
 	{
 
-		$params = $request->get_json_params();
+		 $product_ids = $request->get_param('product_ids');
+    $email       = $request->get_param('email');
 
-		// 1. รับค่า product_ids และ email จาก request
-		$product_ids = isset($params['product_ids']) ? $params['product_ids'] : [];
-		$email = isset($params['email']) ? $params['email'] : '';
+    // 2. จัดตารางเวลาให้ Cron Job ทำงานเบื้องหลัง
+    // เราไม่จำเป็นต้องตรวจสอบ is_array หรือ is_email ซ้ำอีก เพราะ 'validate_callback' จัดการให้แล้ว
+    $args = [
+        'product_ids' => array_map('intval', $product_ids), // ทำให้แน่ใจว่าเป็น array ของตัวเลขจำนวนเต็ม
+        'email'       => $email,
+    ];
 
-		// 2. ตรวจสอบข้อมูลเบื้องต้น
-		if (empty($product_ids) || ! is_array($product_ids)) {
-			return new WP_Error('invalid_product_ids', 'Product IDs are required and must be an array.', ['status' => 400]);
-		}
+    // 'emn_ai_process_brochure_job' คือชื่อ hook ที่ cron job จะรอฟัง
+    // เราตั้งให้ทำงานทันที (time())
+    $scheduled = wp_schedule_single_event(time(), 'emn_ai_process_brochure_job', $args);
+	wp_cron(); // เรียกใช้ wp_cron() เพื่อให้แน่ใจว่า Cron Job จะทำงานทันที
+    if ($scheduled === false) {
+        // หากตั้งเวลาไม่สำเร็จ ให้ส่ง Error กลับไป
+        return new WP_Error(
+            'schedule_failed',
+            'Could not schedule the brochure generation job.',
+            ['status' => 500]
+        );
+    }
 
-		if (! is_email($email)) {
-			return new WP_Error('invalid_email', 'A valid email address is required.', ['status' => 400]);
-		}
+    // 3. ตอบกลับทันทีว่ารับเรื่องแล้ว
+    $response_data = [
+        'success' => true,
+        'message' => 'Your brochure generation request has been received. The file(s) will be sent to ' . esc_html($email) . ' shortly.',
+    ];
 
-		// 3. จัดตารางเวลาให้ Cron Job ทำงานเบื้องหลัง
-		// ส่งข้อมูล product_ids และ email ไปให้ job
-		$args = [
-			'product_ids' => array_map('intval', $product_ids), // ทำให้แน่ใจว่าเป็น array ของตัวเลข
-			'email'       => $email,
-		];
-
-		// 'emn_ai_process_brochure_job' คือชื่อ hook ที่ cron job จะรอฟัง
-		// เราตั้งให้ทำงานทันที (time())
-		$scheduled = wp_schedule_single_event(time(), 'emn_ai_process_brochure_job', $args);
-
-		if ($scheduled === false) {
-			return new WP_Error('schedule_failed', 'Could not schedule the brochure generation job.', ['status' => 500]);
-		}
-
-		// 4. ตอบกลับทันทีว่ารับเรื่องแล้ว
-		$response_data = [
-			'success' => true,
-			'message' => 'Your brochure generation request has been received. The file(s) will be sent to ' . $email . ' shortly.',
-		];
-
-		return new WP_REST_Response($response_data, 202); // 202 Accepted หมายถึง "รับเรื่องแล้วแต่กำลังประมวลผล"
+    // 202 Accepted หมายถึง "รับเรื่องแล้วแต่กำลังประมวลผล"
+    return new WP_REST_Response($response_data, 202);
 	}
 
 	/**
@@ -372,10 +366,10 @@ class Emn_Ai_Public
 			$message     = 'Please find your brochure attached.';
 			$headers     = array('Content-Type: text/html; charset=UTF-8');
 			$attachments = array($tmp_file_path);
-
+ error_log('EMN AI Debug: Attempting to send brochure to ' . $email);
 			// ส่งอีเมลพร้อมไฟล์แนบ
 			wp_mail($email, $subject, $message, $headers, $attachments);
-
+				
 			// ลบไฟล์ PDF ชั่วคราวออกจาก Server
 			unlink($tmp_file_path);
 		} catch (\Mpdf\MpdfException $e) {
