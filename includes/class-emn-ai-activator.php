@@ -37,27 +37,27 @@ class Emn_Ai_Activator
     
     }
 
-    private static function create_required_folders() {
+        private static function create_initial_directories() {
+        // ใช้ค่าคงที่ WP_CONTENT_DIR จะแม่นยำกว่า
+        $base_path = WP_CONTENT_DIR . '/halal-ai/jsons/';
 
-    $base_dir = WP_CONTENT_DIR . '/halal-ai/jsons/products';
+        // 1. กำหนด Path สำหรับโฟลเดอร์ products
+        $products_dir = $base_path . 'products';
 
-    if ( ! file_exists( $base_dir ) ) {
-        // สร้างโฟลเดอร์ทีละขั้น
-        $halal_dir = WP_CONTENT_DIR . '/halal-ai';
-        if ( ! file_exists( $halal_dir ) ) {
-            wp_mkdir_p( $halal_dir );
+        // 2. กำหนด Path สำหรับโฟลเดอร์ brochures (ที่เพิ่มเข้ามาใหม่)
+        $brochures_dir = $base_path . 'brochures';
+
+        // 3. สร้างโฟลเดอร์ products ถ้ายังไม่มี
+        if (!file_exists($products_dir)) {
+            wp_mkdir_p($products_dir);
         }
 
-        $json_dir = $halal_dir . '/jsons';
-        if ( ! file_exists( $json_dir ) ) {
-            wp_mkdir_p( $json_dir );
-        }
-
-        $products_dir = $json_dir . '/products';
-        if ( ! file_exists( $products_dir ) ) {
-            wp_mkdir_p( $products_dir );
+        // 4. สร้างโฟลเดอร์ brochures ถ้ายังไม่มี
+        if (!file_exists($brochures_dir)) {
+            wp_mkdir_p($brochures_dir);
+            
+        
         }
     }
-}
 
 }
