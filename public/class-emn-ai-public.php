@@ -365,7 +365,7 @@ class Emn_Ai_Public
 			// ตรวจสอบก่อนว่ามีข้อมูลที่จะแสดงผลหรือไม่
 			if (!empty($products_data)) {
 				// ทำให้เทมเพลตสามารถเข้าถึงตัวแปร $products_data ได้
-				include plugin_dir_path(dirname(__FILE__)) . 'public/partials/emn-ai-brochure-template.php';
+				require_once plugin_dir_path(__FILE__) . 'partials/emn-ai-public-brochure-template.php';
 			} else {
 				error_log('!!! No valid product data found to generate brochure.');
 			}
