@@ -312,7 +312,7 @@ class Emn_Ai_Public
 				'email' => $email,
 			)
 		);
-		wp_cron();
+	
 		// ตอบกลับทันทีว่า "รับเรื่องแล้ว"
 		return new WP_REST_Response(array(
 			'status'  => 202, // HTTP 202 Accepted
