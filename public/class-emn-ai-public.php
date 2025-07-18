@@ -335,32 +335,30 @@ class Emn_Ai_Public
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'halal_ai_schedule_log';
 
-		$product_id = (int) $request->get_param('product_ids');
-		$recipient_email = sanitize_email($request->get_param('email'));
+		// ข้อมูลถูกตรวจสอบและกรองมาจาก 'args' ใน register_rest_route แล้ว
+		$sanitized_ids = $request->get_param('product_ids');
+		$recipient_email = $request->get_param('email');
 
-		// ตรวจสอบข้อมูลเบื้องต้น
-		if (empty($product_id) || !is_email($recipient_email)) {
-			return new WP_Error('invalid_data', 'ข้อมูล product_ids หรือ email ไม่ถูกต้อง', ['status' => 400]);
-		}
+		// แปลง array ของ ID ให้เป็น JSON string เพื่อเตรียมบันทึกลงฐานข้อมูล
+		$product_ids_json = json_encode($sanitized_ids);
 
-		// บันทึกคำขอลงในตาราง Log เพื่อรอการประมวลผล
 		$result = $wpdb->insert(
 			$table_name,
 			[
-				'product_id'      => $product_id,
+				// บันทึก JSON string ลงในคอลัมน์ใหม่
+				'product_ids'     => $product_ids_json,
 				'recipient_email' => $recipient_email,
-				'brochure_data'   => '', // ยังไม่มีข้อมูลไฟล์ในขั้นตอนนี้
-				'request_date'    => current_time('mysql', 1), // ใช้ GMT timezone
-				'status'          => 'scheduled', // สถานะเริ่มต้นคือ "รอในคิว"
+				'brochure_data'   => '',
+				'request_date'    => current_time('mysql', 1),
+				'status'          => 'scheduled',
 			]
 		);
 
-		if ($result === false) {
-			return new WP_Error('db_error', 'ไม่สามารถบันทึกคำขอลงในคิวได้', ['status' => 500]);
+		if ($result) {
+			return new WP_REST_Response(['message' => 'คำขอสร้างโบรชัวร์สำหรับ ' . count($sanitized_ids) . ' สินค้า ถูกจัดเก็บในคิวเรียบร้อยแล้ว'], 202);
+		} else {
+			return new WP_Error('no_jobs_created', 'ไม่สามารถสร้างงานในคิวได้', ['status' => 500]);
 		}
-
-		// ตอบกลับว่ารับคำขอเข้าคิวเรียบร้อยแล้ว (HTTP 202 Accepted)
-		return new WP_REST_Response(['message' => 'คำขอสร้างโบรชัวร์ถูกจัดเก็บในคิวเรียบร้อยแล้ว'], 202);
 	}
 	public function process_brochure_generation_job($product_ids, $email)
 	{
@@ -453,7 +451,7 @@ class Emn_Ai_Public
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'halal_ai_brochure_log';
 
-		$product_id = (int) $request->get_param('product_ids');
+		$product_id = (array) $request->get_param('product_ids');
 		$recipient_email = sanitize_email($request->get_param('email'));
 
 		if (empty($product_id) || !is_email($recipient_email)) {
@@ -465,7 +463,7 @@ class Emn_Ai_Public
 		$result = $wpdb->insert(
 			$table_name,
 			[
-				'product_id'      => $product_id,
+				'product_ids'      => $product_id,
 				'recipient_email' => $recipient_email,
 				'brochure_data'   => '', // ยังไม่มีข้อมูลไฟล์ในขั้นตอนนี้
 				'request_date'    => current_time('mysql'),
