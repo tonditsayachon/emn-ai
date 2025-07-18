@@ -279,7 +279,7 @@ class Emn_Ai
 
 		// --- 2. ดึงเนื้อหาจาก Template ---
 		// เตรียมข้อมูลที่จำเป็นเพื่อส่งไปให้ไฟล์ Template
-		$product_post = get_post($job->product_id);
+		$products_data = get_post($job->product_id);
 		// คุณสามารถประกาศตัวแปรอื่นๆ เพิ่มเติมได้ตามต้องการ
 		// เช่น $company_info = get_option('your_company_info');
 

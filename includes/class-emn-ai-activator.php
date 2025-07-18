@@ -42,7 +42,7 @@ class Emn_Ai_Activator
 
         $sql = "CREATE TABLE $table_name (
         log_id mediumint(9) NOT NULL AUTO_INCREMENT,
-        product_id bigint(20) NOT NULL,
+        product_ids text NOT NULL,
         recipient_email varchar(100) NOT NULL,
         brochure_data text NOT NULL, -- เก็บข้อมูลไฟล์เป็น JSON
         request_date datetime NOT NULL,
