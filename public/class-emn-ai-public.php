@@ -335,12 +335,12 @@ class Emn_Ai_Public
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'halal_ai_schedule_log';
 
-		$product_id = (int) $request->get_param('productId');
+		$product_id = (int) $request->get_param('product_ids');
 		$recipient_email = sanitize_email($request->get_param('email'));
 
 		// ตรวจสอบข้อมูลเบื้องต้น
 		if (empty($product_id) || !is_email($recipient_email)) {
-			return new WP_Error('invalid_data', 'ข้อมูล productId หรือ email ไม่ถูกต้อง', ['status' => 400]);
+			return new WP_Error('invalid_data', 'ข้อมูล product_ids หรือ email ไม่ถูกต้อง', ['status' => 400]);
 		}
 
 		// บันทึกคำขอลงในตาราง Log เพื่อรอการประมวลผล
@@ -453,7 +453,7 @@ class Emn_Ai_Public
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'halal_ai_brochure_log';
 
-		$product_id = (int) $request->get_param('productId');
+		$product_id = (int) $request->get_param('product_ids');
 		$recipient_email = sanitize_email($request->get_param('email'));
 
 		if (empty($product_id) || !is_email($recipient_email)) {

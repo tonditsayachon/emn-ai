@@ -371,6 +371,7 @@ class Emn_Ai
 			);
 		} else {
 			// หากส่งอีเมลไม่สำเร็จ
+			
 			$wpdb->update($table_name, ['status' => 'failed'], ['log_id' => $job->log_id]);
 			// ลบไฟล์ PDF ที่สร้างขึ้นทิ้ง เพื่อไม่ให้เปลืองพื้นที่
 			if (file_exists($file_path)) {
