@@ -312,7 +312,7 @@ class Emn_Ai_Public
 				'email' => $email,
 			)
 		);
-	
+		wp_cron();
 		// ตอบกลับทันทีว่า "รับเรื่องแล้ว"
 		return new WP_REST_Response(array(
 			'status'  => 202, // HTTP 202 Accepted
@@ -365,7 +365,7 @@ class Emn_Ai_Public
 			// ตรวจสอบก่อนว่ามีข้อมูลที่จะแสดงผลหรือไม่
 			if (!empty($products_data)) {
 				// ทำให้เทมเพลตสามารถเข้าถึงตัวแปร $products_data ได้
-				require_once plugin_dir_path(__FILE__) . 'partials/emn-ai-public-brochure-template.php';
+				  include plugin_dir_path(__FILE__) . 'partials/emn-ai-brochure-template.php';
 			} else {
 				error_log('!!! No valid product data found to generate brochure.');
 			}
