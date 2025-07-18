@@ -34,10 +34,7 @@ class Emn_Ai_Deactivator
 	{
 
 
-		// clear transient
-		delete_transient('emn_ai_api_cache');
-
-		// optional: ถ้าต้อง clean file/folder
-		// self::delete_plugin_folders();
+		// ลบ Cron ที่ตั้งเวลาไว้ออกเมื่อปิดใช้งานปลั๊กอิน
+		wp_clear_scheduled_hook('halal_ai_process_brochure_queue_hook');
 	}
 }

@@ -296,29 +296,29 @@ class Emn_Ai_Public
 	 * @return  WP_REST_Response                The response object.
 	 * @since   1.0.0
 	 */
-	public function handle_brochure_generation_request(WP_REST_Request $request)
-	{
-		$product_ids = $request->get_param('product_ids');
-		$email       = sanitize_email($request->get_param('email'));
-		$sanitized_ids = array_map('absint', $product_ids);
+	// public function handle_brochure_generation_request(WP_REST_Request $request)
+	// {
+	// 	$product_ids = $request->get_param('product_ids');
+	// 	$email       = sanitize_email($request->get_param('email'));
+	// 	$sanitized_ids = array_map('absint', $product_ids);
 
-		// WP-Cron
+	// 	// WP-Cron
 
-		wp_schedule_single_event(
-			time(),
-			'emn_ai_trigger_brochure_generation', // ชื่อ Action ที่เราจะสร้างไว้รอรับ
-			array(
-				'product_ids' => $sanitized_ids,
-				'email' => $email,
-			)
-		);
-		wp_cron();
-		// ตอบกลับทันทีว่า "รับเรื่องแล้ว"
-		return new WP_REST_Response(array(
-			'status'  => 202, // HTTP 202 Accepted
-			'message' => 'Brochure generation job has been scheduled. It will be sent to the email shortly.'
-		), 202);
-	}
+	// 	wp_schedule_single_event(
+	// 		time(),
+	// 		'emn_ai_trigger_brochure_generation', // ชื่อ Action ที่เราจะสร้างไว้รอรับ
+	// 		array(
+	// 			'product_ids' => $sanitized_ids,
+	// 			'email' => $email,
+	// 		)
+	// 	);
+
+	// 	// ตอบกลับทันทีว่า "รับเรื่องแล้ว"
+	// 	return new WP_REST_Response(array(
+	// 		'status'  => 202, // HTTP 202 Accepted
+	// 		'message' => 'Brochure generation job has been scheduled. It will be sent to the email shortly.'
+	// 	), 202);
+	// }
 
 	/**
 	 * Processes the brochure generation job via WP-Cron.
@@ -327,6 +327,41 @@ class Emn_Ai_Public
 	 * @param   string  $email          Sanitized email address.
 	 * @since   1.0.0
 	 */
+	/**
+	 * รับคำขอสร้างโบรชัวร์และนำเข้าคิวในฐานข้อมูล
+	 */
+	function handle_brochure_generation_request(WP_REST_Request $request)
+	{
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'halal_ai_schedule_log';
+
+		$product_id = (int) $request->get_param('productId');
+		$recipient_email = sanitize_email($request->get_param('email'));
+
+		// ตรวจสอบข้อมูลเบื้องต้น
+		if (empty($product_id) || !is_email($recipient_email)) {
+			return new WP_Error('invalid_data', 'ข้อมูล productId หรือ email ไม่ถูกต้อง', ['status' => 400]);
+		}
+
+		// บันทึกคำขอลงในตาราง Log เพื่อรอการประมวลผล
+		$result = $wpdb->insert(
+			$table_name,
+			[
+				'product_id'      => $product_id,
+				'recipient_email' => $recipient_email,
+				'brochure_data'   => '', // ยังไม่มีข้อมูลไฟล์ในขั้นตอนนี้
+				'request_date'    => current_time('mysql', 1), // ใช้ GMT timezone
+				'status'          => 'scheduled', // สถานะเริ่มต้นคือ "รอในคิว"
+			]
+		);
+
+		if ($result === false) {
+			return new WP_Error('db_error', 'ไม่สามารถบันทึกคำขอลงในคิวได้', ['status' => 500]);
+		}
+
+		// ตอบกลับว่ารับคำขอเข้าคิวเรียบร้อยแล้ว (HTTP 202 Accepted)
+		return new WP_REST_Response(['message' => 'คำขอสร้างโบรชัวร์ถูกจัดเก็บในคิวเรียบร้อยแล้ว'], 202);
+	}
 	public function process_brochure_generation_job($product_ids, $email)
 	{
 		error_log('--- EMN AI Brochure Job Started ---');
@@ -365,7 +400,7 @@ class Emn_Ai_Public
 			// ตรวจสอบก่อนว่ามีข้อมูลที่จะแสดงผลหรือไม่
 			if (!empty($products_data)) {
 				// ทำให้เทมเพลตสามารถเข้าถึงตัวแปร $products_data ได้
-				  include plugin_dir_path(__FILE__) . 'partials/emn-ai-brochure-template.php';
+				include plugin_dir_path(__FILE__) . 'partials/emn-ai-brochure-template.php';
 			} else {
 				error_log('!!! No valid product data found to generate brochure.');
 			}
@@ -411,5 +446,37 @@ class Emn_Ai_Public
 		} catch (\Exception $e) {
 			error_log('!!! CRITICAL ERROR in Brochure Job: ' . $e->getMessage());
 		}
+	}
+
+	public function generate_and_send_brochure_callback(WP_REST_Request $request)
+	{
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'halal_ai_brochure_log';
+
+		$product_id = (int) $request->get_param('productId');
+		$recipient_email = sanitize_email($request->get_param('email'));
+
+		if (empty($product_id) || !is_email($recipient_email)) {
+			return new WP_Error('invalid_data', 'ข้อมูลที่ส่งมาไม่ถูกต้อง', ['status' => 400]);
+		}
+
+		// *** ส่วนที่เปลี่ยน ***
+		// แทนที่จะสร้างไฟล์ทันที เราจะบันทึกคำขอลง DB
+		$result = $wpdb->insert(
+			$table_name,
+			[
+				'product_id'      => $product_id,
+				'recipient_email' => $recipient_email,
+				'brochure_data'   => '', // ยังไม่มีข้อมูลไฟล์ในขั้นตอนนี้
+				'request_date'    => current_time('mysql'),
+				'status'          => 'scheduled', // สถานะเริ่มต้นคือ "รอคิว"
+			]
+		);
+
+		if ($result === false) {
+			return new WP_Error('db_error', 'ไม่สามารถบันทึกคำขอได้', ['status' => 500]);
+		}
+
+		return new WP_REST_Response(['message' => 'Brochure request has been queued successfully.'], 202); // 202 Accepted
 	}
 }
