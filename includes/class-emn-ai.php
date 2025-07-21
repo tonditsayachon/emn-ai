@@ -333,7 +333,7 @@ class Emn_Ai
 			return;
 		}
 
-		// --- 4. สร้างไฟล์ PDF ---
+
 		// --- 4. สร้างไฟล์ PDF ---
 		// กำหนด Path สำหรับบันทึกไฟล์โดยตรง
 		$brochure_dir = WP_CONTENT_DIR . '/halal-ai/jsons/brochures';
