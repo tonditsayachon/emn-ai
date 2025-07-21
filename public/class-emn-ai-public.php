@@ -130,10 +130,7 @@ class Emn_Ai_Public
 					'items'             => array(
 						'type' => 'integer',
 					),
-					/**
-					 * UPDATED VALIDATION CALLBACK
-					 * เราจะเปลี่ยนให้มันคืนค่าเป็น WP_Error object ซึ่งจะให้ข้อมูลที่ละเอียดกว่า
-					 */
+
 					'validate_callback' => function ($param, $request, $key) {
 						// เช็คก่อนเลยว่าค่าที่ได้มาเป็น Array หรือไม่
 						if (!is_array($param)) {
@@ -151,8 +148,12 @@ class Emn_Ai_Public
 						return true;
 					}
 				),
-				'email' => array(
-					// ... การตั้งค่า email เหมือนเดิม ...
+					'email'       => array(
+					'required'          => true,
+					'description'       => 'The email address to send the brochure to.',
+					'type'              => 'string',
+					'format'            => 'email',
+					'validate_callback' => 'is_email'
 				),
 			),
 		]);

@@ -372,9 +372,6 @@ class Emn_Ai
 		$body .= '<p style="margin: 20px 0;"><a href="' . esc_url($file_url) . '" style="background-color: #0073aa; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px;" download><strong>คลิกที่นี่เพื่อดาวน์โหลดโบรชัวร์</strong></a></p>';
 		$body .= '<p>ขอแสดงความนับถือ<br>ทีมงาน</p>';
 
-		// เพิ่ม Tracking Pixel (ถ้ามี)
-		$tracking_url = get_rest_url(null, "halal-ai/v1/track/{$job->log_id}");
-		$body .= "<img src='{$tracking_url}' width='1' height='1' alt='' style='display:none;' />";
 
 		$headers = ['Content-Type: text/html; charset=UTF-8'];
 		$attachments = []; //  <-- กำหนดให้เป็น array ว่างเพื่อไม่ให้แนบไฟล์

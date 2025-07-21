@@ -47,7 +47,6 @@ class Emn_Ai_Activator
         brochure_data text NOT NULL, -- เก็บข้อมูลไฟล์เป็น JSON
         request_date datetime NOT NULL,
         sent_timestamp datetime DEFAULT NULL,
-        opened_timestamp datetime DEFAULT NULL, -- เพิ่ม Field นี้สำหรับข้อ 3
         status varchar(20) NOT NULL DEFAULT 'scheduled', -- สถานะ: scheduled, sent, failed, deleted
         PRIMARY KEY  (log_id)
     ) $charset_collate;";
