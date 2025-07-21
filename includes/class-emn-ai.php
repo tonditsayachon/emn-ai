@@ -263,6 +263,7 @@ class Emn_Ai
 	 * ฟังก์ชันนี้จะถูกเรียกโดย Cron Job เพื่อดึงงานที่รอคิวมาประมวลผลทีละรายการ
 	 * โดยมีขั้นตอนคือ: ดึงข้อมูล -> สร้าง PDF จาก Template -> ส่งอีเมล -> อัปเดตสถานะ
 	 */
+	
 	public function process_brochure_queue()
 	{
 		global $wpdb;
