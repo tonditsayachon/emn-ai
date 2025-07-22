@@ -386,12 +386,14 @@ class Emn_Ai
 
 			$mpdf = new \Mpdf\Mpdf([
 				'fontdata' => [
-					'garuda' => [
-						'R' => 'Garuda.ttf',
-						'B' => 'Garuda-Bold.ttf',
+					'inter' => [
+						'L' => 'Inter-Light.ttf',
+						'R' => 'Inter-Regular.ttf',
+						'M' => 'Inter-Medium.ttf',
+						'B' => 'Inter-Bold.ttf',
 					]
 				],
-				'default_font' => 'garuda'
+				'default_font' => 'inter'
 			]);
 
 			$mpdf->WriteHTML($html_content);

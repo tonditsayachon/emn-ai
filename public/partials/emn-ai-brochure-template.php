@@ -25,11 +25,10 @@ $default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL :
         }
 
         body {
-            font-family: "garuda", sans-serif;
-            font-size: 11px;
-            color: #333;
-            margin: 0;
-            padding: 16px;
+            font-family: 'Inter', sans-serif;
+            padding: 26px;
+            line-height: 1.4 !important;
+
         }
 
         .page-break {
@@ -46,7 +45,7 @@ $default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL :
 
             overflow: auto;
             padding-bottom: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
 
         }
 
@@ -56,20 +55,32 @@ $default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL :
 
         }
 
-        .hsc-logo {
 
-            float: right;
-            width: 120px;
-            height: auto;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+
+            h1.product-name {
+
+                font-size: 28px;
+                margin: 0;
+                font-weight: bold;
+                color: #333;
+                float: left;
+
+
+            }
+
+            .hsc-logo {
+                width: 120px;
+
+                height: auto;
+                display: block;
+                margin-left: auto;
+                margin-right: 0;
+            }
         }
 
-        .product-name {
-            float: left;
-            font-size: 28px;
-            font-weight: bold;
-            color: #333;
-            text-transform: uppercase;
-        }
 
         .vendor-details>* {
             display: block;
@@ -78,18 +89,21 @@ $default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL :
 
         .vendor-name {
             border-bottom: #000 1px solid;
-            margin-bottom: 8px;
-            font-weight: 400;
+            margin-bottom: 16px;
+            font-weight: 500;
             font-size: 20px !important;
+            padding-bottom: 8px;
         }
 
         .vendor-logo {
 
             width: 150px;
             height: auto;
+            margin-bottom: 8px;
         }
 
         .vendor-logo img {
+
             max-width: 100%;
             max-height: 20px;
         }
@@ -102,7 +116,7 @@ $default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL :
         /* --- Main Content --- */
         .main-content {
             overflow: auto;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .left-column {
@@ -110,43 +124,61 @@ $default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL :
             width: 48%;
         }
 
+        .feature-image img {
+            width: 100%;
+            height: auto;
+            border-width: 1px;
+            border-style: solid;
+            border-color: #ddd;
+            border-radius: 4px;
+        }
+
         .right-column {
             float: right;
             width: 48%;
         }
 
-        .feature-image img {
-            width: 100%;
-            height: auto;
-            border: 1px solid #ddd;
-        }
+
 
         .description {
             color: #595959;
+            margin-bottom: 16px;
+
+            p.title {
+                font-weight: 400;
+                font-size: 20px !important;
+                margin-bottom: 8px;
+            }
 
             .product-description {
-                font-size: 12px;
-                line-height: 1.5;
+                font-size: 14px;
                 font-weight: 300;
+                margin-top: 8px;
             }
+
         }
-         .gallery-section {
-             margin-top: 20px;
+
+        .gallery-section {
+            margin-top: 20px;
+            padding: 0;
         }
+
         .gallery-grid {
-            overflow: auto; /* To contain floated elements */
+            overflow: auto;
+            /* To contain floated elements */
             width: 100%;
         }
+
         .gallery-image {
-        
-            width: 31.33%; /* (100% / 3 columns) - margins */
+
+            width: 31.33%;
+            /* (100% / 3 columns) - margins */
             margin: 1%;
             box-sizing: border-box;
-            
+            border: 1px solid #ddd;
             text-align: center;
-         
+
         }
-   
     </style>
 </head>
 
@@ -166,19 +198,16 @@ $default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL :
             <div class="brochure-page">
 
                 <div class="page-header">
-                    <div class="header-logo">
-
-                        <img class="hsc-logo" src="<?php echo esc_url(plugins_url('public/images/halplus-directory-logo.png', dirname(__FILE__, 2))); ?>" alt="Halplus Directory Logo">
-
-                    </div>
-
-                    <div class="product-name">
-                        <?php echo esc_html($product->name); ?>
-                    </div>
-
-
-
-
+                    <table>
+                        <tr>
+                            <td>
+                                <h1 class="product-name" style="text-transform: uppercase;"><?php echo esc_html($product->name); ?></h1>
+                            </td>
+                            <td style="vertical-align: right;">
+                                <img class="hsc-logo" src="<?php echo esc_url(plugins_url('public/images/halplus-directory-logo.png', dirname(__FILE__, 2))); ?>" alt="Halplus Directory Logo">
+                            </td>
+                        </tr>
+                    </table>
                 </div>
 
                 <div class="main-content">
@@ -187,7 +216,21 @@ $default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL :
 
                         <div class="feature-image">
                             <?php if (!empty($product->featured_image)): ?>
-                                <img src="<?php echo esc_url($product->featured_image); ?>" alt="<?php echo esc_attr($product->name); ?>">
+                                <?php
+                                // Get image dimensions
+                                $image_url = esc_url($product->featured_image);
+                                $image_size = @getimagesize($product->featured_image);
+                                $is_landscape = false;
+                                if ($image_size && $image_size[0] > $image_size[1]) {
+                                    $is_landscape = true;
+                                }
+                                ?>
+                                <div style="background: <?php echo $is_landscape ? '#f0f0f0' : 'none'; ?>; display: flex; align-items: center; justify-content: center; width: 100%; height: auto;">
+                                    <img
+                                        style="border: 1px solid #E6E6E6; max-width: 100%; max-height: auto; object-fit: contain; background: transparent;"
+                                        src="<?php echo $image_url; ?>"
+                                        alt="<?php echo esc_attr($product->name); ?>">
+                                </div>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -204,7 +247,12 @@ $default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL :
                             <div class="vendor-name"><?php echo esc_html($store_name); ?></div>
                             <div class="vendor-contact">
                                 <?php echo nl2br(esc_html($address)); ?><br>
-                                <strong>Tel:</strong> <?php echo esc_html($tel); ?> | <strong>Email:</strong> <?php echo esc_html($email); ?>
+                                <ul>
+                                    <li> <strong>Tel:</strong> <?php echo esc_html($tel); ?></li>
+                                    <li> <strong>Email:</strong> <?php echo esc_html($email); ?></li>
+                                </ul>
+
+
                             </div>
 
 
@@ -235,7 +283,7 @@ $default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL :
                 </div>
 
                 <div class="description">
-                    <h1>Description</h1>
+                    <p class="title">Description</p>
                     <?php if (!empty($product->description)) : ?>
                         <div class="product-description">
                             <?php echo wp_strip_all_tags($product->description); ?>
