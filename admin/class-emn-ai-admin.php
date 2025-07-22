@@ -159,7 +159,7 @@ class Emn_Ai_Admin
 			$post_modified_time = get_post_modified_time('U', true, $product_id); // GMT timestamp
 			$output_dir = WP_CONTENT_DIR . '/halal-ai/jsons/products/';
 			$filename = $output_dir . 'product_' . $product_id . '.json';
-
+			
 			if (file_exists($filename)) {
 				$file_modified_time = filemtime($filename);
 				if ($file_modified_time >= $post_modified_time) {
@@ -172,7 +172,8 @@ class Emn_Ai_Admin
 				'name' => $product->get_name(),
 				'regular_price' => $product->get_regular_price(),
 				'sale_price' => $product->get_sale_price(),
-				'tiers_prices' => $product->maybe_unserialize(get_post_meta($product_id, 'marketking_group_price_tiers', true)),
+				'tiers_prices' => maybe_unserialize(get_post_meta($product_id, 'marketking_group_price_tiers', true)),
+
 				'sku' => $product->get_sku(),
 				'description' => $product->get_description(),
 				'short_description' => $product->get_short_description(),

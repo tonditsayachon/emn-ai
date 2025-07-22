@@ -332,5 +332,44 @@ class Emn_Ai_Public
 			return new WP_Error('no_jobs_created', 'ไม่สามารถสร้างงานในคิวได้', ['status' => 500]);
 		}
 	}
+
+	/**
+ * ดึงข้อมูล Vendor จาก Product ID
+ * @param int $product_id ID ของสินค้า
+ * @return array|null ข้อมูลของ Vendor หรือ null ถ้าไม่พบ
+ */
+public static function get_vendor_info_by_product_id($product_id)
+{
+    // 1. ดึง ID ของผู้เขียน (Vendor) จาก Product Post
+    $vendor_id = get_post_field('post_author', $product_id);
+
+    if (empty($vendor_id)) {
+        return null;
+    }
+
+    // 2. ดึงข้อมูล Meta ของ Vendor จากตาราง usermeta
+    // หมายเหตุ: 'meta_key' เหล่านี้เป็นเพียงตัวอย่างที่ MarketKing อาจใช้งาน
+    // คุณอาจต้องตรวจสอบจากฐานข้อมูลจริงว่า MarketKing ใช้ key ชื่ออะไร
+    $vendor_data = [
+        'id'          => $vendor_id,
+        'store_name'  => get_user_meta($vendor_id, 'marketking_store_name', true) ?? '',
+        'logo_url'    => get_user_meta($vendor_id, 'marketking_logo', true) ?? '',
+        'phone'       => get_user_meta($vendor_id, 'marketking_phone', true) ?? '',
+        'address'     => get_user_meta($vendor_id, 'b2bking_billing_address_1', true) ?? '', // ลองดึงจาก B2BKing
+        'email'       => get_the_author_meta('user_email', $vendor_id),
+    ];
+
+    // ตัวอย่างการดึงที่อยู่เพิ่มเติมจาก B2BKing
+    $city     = get_user_meta($vendor_id, 'b2bking_billing_city', true);
+    $postcode = get_user_meta($vendor_id, 'b2bking_billing_postcode', true);
+    if ($city) {
+        $vendor_data['address'] .= ', ' . $city;
+    }
+    if ($postcode) {
+        $vendor_data['address'] .= ' ' . $postcode;
+    }
+
+    return $vendor_data;
+}
 	
 }

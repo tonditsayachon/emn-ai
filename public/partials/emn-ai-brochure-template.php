@@ -1,206 +1,273 @@
 <?php
+
 /**
- * Template for the Product Brochure PDF - v3 (New Design)
+ * Template for the Product Brochure PDF (New Design - July 2025 v2)
  *
  * @var array $products_data Contains an array of product data objects.
  */
 
-// ใส่ URL เต็มๆ ของโลโก้บริษัทคุณตรงนี้
-$company_logo_url = 'https://www.halalthai.com/wp-content/uploads/2024/12/halplus-directory-logo.png'; 
-// ใส่ URL รูปภาพหน้าปกตรงนี้
-$cover_image_url = 'https://www.yourcompany.com/path/to/cover-image.jpg';
-
+// ดึงข้อมูลบริษัทเริ่มต้นจากค่าคงที่ (Constants) ที่กำหนดไว้ใน class-emn-ai.php
+$default_company_name = defined('EMN_AI_DEFAULT_COMPANY_NAME') ? EMN_AI_DEFAULT_COMPANY_NAME : 'Emonics Solution';
+$default_logo_url     = defined('EMN_AI_DEFAULT_LOGO') ? EMN_AI_DEFAULT_LOGO : '';
+$default_address      = defined('EMN_AI_DEFAULT_ADDRESS') ? EMN_AI_DEFAULT_ADDRESS : '';
+$default_tel          = defined('EMN_AI_DEFAULT_TEL') ? EMN_AI_DEFAULT_TEL : '';
+$default_email        = defined('EMN_AI_DEFAULT_EMAIL') ? EMN_AI_DEFAULT_EMAIL : '';
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <title>Product Brochure</title>
     <style>
         @page {
-            margin: 0; /* ลบ margin ของหน้ากระดาษ */
+            margin: 25px;
         }
-        body { 
-            font-family: "garuda", sans-serif; 
-            font-size: 12px; 
+
+        body {
+            font-family: "garuda", sans-serif;
+            font-size: 11px;
             color: #333;
             margin: 0;
+            padding: 16px;
         }
-        .page-break { 
-            page-break-after: always; 
+
+        .page-break {
+            page-break-after: always;
         }
-        .cover-page {
+
+        .brochure-page {
             width: 100%;
             height: 100%;
-            background-color: #005A9C; /* สีพื้นหลังหน้าปก */
-            color: white;
-            text-align: center;
-            display: table;
         }
-        .cover-content {
-            display: table-cell;
-            vertical-align: middle;
+
+        /* --- Header --- */
+        .page-header {
+
+            overflow: auto;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+
         }
-        .cover-content h1 {
-            font-size: 48px;
+
+        .page-header>* {
+            display: block;
+            width: 100%;
+
+        }
+
+        .hsc-logo {
+
+            float: right;
+            width: 120px;
+            height: auto;
+        }
+
+        .product-name {
+            float: left;
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            text-transform: uppercase;
+        }
+
+        .vendor-details>* {
+            display: block;
+
+        }
+
+        .vendor-name {
+            border-bottom: #000 1px solid;
+            margin-bottom: 8px;
+            font-weight: 400;
+            font-size: 20px !important;
+        }
+
+        .vendor-logo {
+
+            width: 150px;
+            height: auto;
+        }
+
+        .vendor-logo img {
+            max-width: 100%;
+            max-height: 20px;
+        }
+
+        .vendor-contact {
+            color: #595959;
+            font-weight: 300;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            overflow: auto;
             margin-bottom: 20px;
         }
-        .cover-content img.logo {
-            max-height: 80px;
-            margin-bottom: 40px;
-        }
-        .product-page {
-            padding: 40px;
-            box-sizing: border-box;
-        }
-        .product-header {
-            display: block;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #005A9C;
-            padding-bottom: 15px;
-        }
-        .product-header .product-name {
-            font-size: 28px;
-            color: #005A9C;
-            font-weight: bold;
-            margin: 0;
-        }
-        .product-header .product-sku {
-            font-size: 14px;
-            color: #555;
-            font-family: monospace;
-            margin-top: 5px;
-        }
-        .product-main {
-            height: 500px; /* กำหนดความสูงเพื่อให้จัด layout ง่าย */
-        }
-        .product-image {
-            width: 45%;
+
+        .left-column {
             float: left;
-            text-align: center;
+            width: 48%;
         }
-        .product-image img {
-            max-width: 100%;
-            max-height: 350px;
-        }
-        .product-info {
-            width: 50%;
+
+        .right-column {
             float: right;
+            width: 48%;
         }
-        .product-price {
-            font-size: 26px;
-            font-weight: bold;
-            color: #D32F2F;
-            margin-bottom: 15px;
-        }
-        .product-short-desc {
-            font-size: 14px;
-            line-height: 1.7;
-            text-align: justify;
-            margin-top: 15px;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-        .details-section {
-            margin-top: 40px;
-            clear: both; /* เคลียร์ float */
-        }
-        .details-section h2 {
-            font-size: 18px;
-            color: #333;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 8px;
-        }
-        .details-table {
+
+        .feature-image img {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
+            height: auto;
+            border: 1px solid #ddd;
         }
-        .details-table td {
-            border: 1px solid #e0e0e0;
-            padding: 10px;
-            font-size: 12px;
-            vertical-align: top;
+
+        .description {
+            color: #595959;
+
+            .product-description {
+                font-size: 12px;
+                line-height: 1.5;
+                font-weight: 300;
+            }
         }
-        .details-table td:first-child {
-            background-color: #f7f7f7;
-            font-weight: bold;
-            width: 35%;
+         .gallery-section {
+             margin-top: 20px;
         }
-        .page-footer {
-            position: fixed;
-            bottom: 10px;
-            left: 40px;
-            right: 40px;
+        .gallery-grid {
+            overflow: auto; /* To contain floated elements */
+            width: 100%;
+        }
+        .gallery-image {
+        
+            width: 31.33%; /* (100% / 3 columns) - margins */
+            margin: 1%;
+            box-sizing: border-box;
+            
             text-align: center;
-            font-size: 10px;
-            color: #999;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
+         
         }
+   
     </style>
 </head>
+
 <body>
 
-    <div class="cover-page page-break">
-        <div class="cover-content">
-            <img src="<?php echo esc_url($company_logo_url); ?>" alt="Company Logo" class="logo">
-            <h1>Product Catalog</h1>
-            <p>Generated on: <?php echo date('F j, Y'); ?></p>
-        </div>
-    </div>
-
-
     <?php if (!empty($products_data)): ?>
-        <?php foreach ($products_data as $product): ?>
-        <div class="product-page">
-            
-            <div class="product-header">
-                <h1 class="product-name"><?php echo esc_html($product->name); ?></h1>
-                <?php if (!empty($product->sku)) : ?>
-                    <div class="product-sku">SKU: <?php echo esc_html($product->sku); ?></div>
+        <?php foreach ($products_data as $index => $product): ?>
+            <?php
+            // เตรียมข้อมูล Vendor และค่า Default
+            $vendor_info = $product->vendor_info ?? null;
+            $logo_url    = !empty($vendor_info['logo_url']) ? $vendor_info['logo_url'] : $default_logo_url;
+            $store_name  = !empty($vendor_info['store_name']) ? $vendor_info['store_name'] : $default_company_name;
+            $address     = !empty($vendor_info['address']) ? $vendor_info['address'] : $default_address;
+            $tel         = !empty($vendor_info['phone']) ? $vendor_info['phone'] : $default_tel;
+            $email       = !empty($vendor_info['email']) ? $vendor_info['email'] : $default_email;
+            ?>
+            <div class="brochure-page">
+
+                <div class="page-header">
+                    <div class="header-logo">
+
+                        <img class="hsc-logo" src="<?php echo esc_url(plugins_url('public/images/halplus-directory-logo.png', dirname(__FILE__, 2))); ?>" alt="Halplus Directory Logo">
+
+                    </div>
+
+                    <div class="product-name">
+                        <?php echo esc_html($product->name); ?>
+                    </div>
+
+
+
+
+                </div>
+
+                <div class="main-content">
+
+                    <div class="left-column">
+
+                        <div class="feature-image">
+                            <?php if (!empty($product->featured_image)): ?>
+                                <img src="<?php echo esc_url($product->featured_image); ?>" alt="<?php echo esc_attr($product->name); ?>">
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="right-column">
+
+                        <div class="vendor-details">
+
+                            <div class="vendor-logo">
+                                <?php if (!empty($logo_url)): ?>
+                                    <img src="<?php echo esc_url($logo_url); ?>" alt="Vendor Logo">
+                                <?php endif; ?>
+
+                            </div>
+                            <div class="vendor-name"><?php echo esc_html($store_name); ?></div>
+                            <div class="vendor-contact">
+                                <?php echo nl2br(esc_html($address)); ?><br>
+                                <strong>Tel:</strong> <?php echo esc_html($tel); ?> | <strong>Email:</strong> <?php echo esc_html($email); ?>
+                            </div>
+
+
+                        </div>
+                        <div class="tier-prices">
+                            <?php if (!empty($product->tiers_prices) && is_array($product->tiers_prices)): ?>
+                                <table class="tier-price-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Quantity</th>
+                                            <th>Price</th>
+                                            <th>Discount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($product->tiers_prices as $tier): ?>
+                                            <tr>
+                                                <td><?php echo !empty($tier['quantity']) ? esc_html($tier['quantity']) : 'N/A'; ?></td>
+                                                <td>฿<?php echo isset($tier['price']) && $tier['price'] !== null ? number_format((float)$tier['price'], 2) : 'N/A'; ?></td>
+                                                <td><?php echo isset($tier['discount']) && $tier['discount'] !== null ? esc_html($tier['discount']) . '%' : 'N/A'; ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="description">
+                    <h1>Description</h1>
+                    <?php if (!empty($product->description)) : ?>
+                        <div class="product-description">
+                            <?php echo wp_strip_all_tags($product->description); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <?php if (!empty($product->product_gallery) && is_array($product->product_gallery)): ?>
+                    <div class="gallery-section">
+                        <table class="gallery-grid" BORDER="0" CELLPADDING="8" CELLSPACING="8">
+                            <tr>
+                                <?php foreach ($product->product_gallery as $i => $image_url): ?>
+                                    <td class="gallery-image">
+                                        <img src="<?php echo esc_url($image_url); ?>" alt="Gallery Image <?php echo $i + 1; ?>">
+                                    </td>
+                                    <?php if (($i + 1) % 3 === 0 && ($i + 1) < count($product->product_gallery)): ?>
+                            </tr>
+                            <tr>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                            </tr>
+                        </table>
+                    </div>
                 <?php endif; ?>
-            </div>
 
-            <div class="product-main">
-                <div class="product-image">
-                    <?php if (!empty($product->featured_image)): ?>
-                        <img src="<?php echo esc_url($product->featured_image); ?>" alt="<?php echo esc_attr($product->name); ?>">
-                    <?php endif; ?>
-                </div>
+                <?php if ($index < count($products_data) - 1): ?>
+                    <div class="page-break"></div>
+                <?php endif; ?>
 
-                <div class="product-info">
-                    <?php if (!empty($product->regular_price)) : ?>
-                        <div class="product-price">ราคา: ฿<?php echo number_format((float)$product->regular_price, 2); ?></div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($product->short_description)) : ?>
-                        <div class="product-short-desc"><?php echo wp_strip_all_tags($product->short_description); ?></div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <?php if (!empty($product->acf_fields) && is_object($product->acf_fields)): ?>
-                <div class="details-section">
-                    <h2>ข้อมูลจำเพาะ</h2>
-                    <table class="details-table">
-                        <tbody>
-                
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
-
-            <div class="page-footer">
-                <p>เอกสารนี้จัดทำโดยระบบอัตโนมัติ | &copy; <?php echo date('Y'); ?> Your Company Name</p>
-            </div>
-
-        </div>
-        <?php if (next($products_data)): // เช็คว่ามีสินค้าตัวต่อไปหรือไม่เพื่อใส่ page-break ?>
-            <div class="page-break"></div>
+            <?php endforeach; ?>
         <?php endif; ?>
-        <?php endforeach; ?>
-    <?php endif; ?>
 
 </body>
+
 </html>
