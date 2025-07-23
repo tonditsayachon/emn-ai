@@ -33,7 +33,7 @@ foreach ($products_data as $i => $product) {
     // รวมข้อมูลที่อยู่เป็นข้อความเดียว
     $full_address_parts = array_filter([$address1, $address2, $city, $state, $postcode, $country]);
     $full_address = !empty($full_address_parts) ? implode(', ', $full_address_parts) : 'N/A';
-    
+
     $vendor_info = [
         'store_name' => $vendor_name,
         'logo_url'   => get_user_meta($vendor_id, 'marketking_profile_logo_image', true) ?: '',
@@ -70,6 +70,9 @@ foreach ($products_data as $i => $product) {
             margin-left: 30px;
             margin-right: 30px;
             margin-bottom: 50px;
+            footer: html_myFooter;
+
+
         }
 
         body {
@@ -258,6 +261,15 @@ foreach ($products_data as $i => $product) {
         .tier-price-table {
             box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
         }
+
+        #footer {
+            font-size: 10px;
+            color: #666;
+            width: 100%;
+            border-top: 1px solid #ccc;
+            text-align: right;
+            padding-top: 5px;
+        }
     </style>
 </head>
 
@@ -305,7 +317,7 @@ foreach ($products_data as $i => $product) {
                                     ?>
                                     <div style="background: <?php echo $is_landscape ? '#f0f0f0' : 'none'; ?>;">
                                         <img
-                                            style="max-width:450px;"
+                                            style="max-width:450px; border:1px solid #ddd;"
                                             src="<?php echo $image_url; ?>"
                                             alt="<?php echo esc_attr($product->name); ?>">
                                     </div>
@@ -342,8 +354,8 @@ foreach ($products_data as $i => $product) {
                                         <div class="vendor-contact">
                                             <?php echo wp_kses_post('<strong>Address: </strong>' . nl2br(esc_html($address))); ?><br>
                                             <ul>
-                                                <li> <strong>Tel:</strong> <?php echo esc_html($tel); ?></li>
-                                                <li> <strong>Email:</strong> <?php echo esc_html($email); ?></li>
+                                                <li> <strong>Tel:</strong> <a href="tel:<?php echo $tel ?>"><?php echo esc_html($tel); ?></a></li>
+                                                <li> <strong>Email:</strong> <a href="mailto:<?php echo $email ?>"><?php echo esc_html($email); ?></a></li>
                                             </ul>
                                         </div>
                                     </td>
@@ -367,7 +379,7 @@ foreach ($products_data as $i => $product) {
                                                     <tbody>
                                                         <?php foreach ($product->tiers_prices as $tier): ?>
                                                             <tr>
-                                                                <td><?php echo !empty($tier['quantity']) ? esc_html($tier['quantity']) : 'N/A'; ?></td>
+                                                                <td><?php echo isset($tier['quantity']) && $tier['quantity'] !== null ? number_format((int)$tier['quantity']) : 'N/A'; ?></td>
                                                                 <td>฿<?php echo isset($tier['price']) && $tier['price'] !== null ? number_format((float)$tier['price'], 2) : 'N/A'; ?></td>
                                                             </tr>
                                                         <?php endforeach; ?>
@@ -423,6 +435,11 @@ foreach ($products_data as $i => $product) {
 
             <?php endforeach; ?>
         <?php endif; ?>
+<htmlpagefooter name="myFooter">
+    <div id="footer">
+        Page {PAGENO} of {nb}
+    </div>
+</htmlpagefooter>
 
 </body>
 
