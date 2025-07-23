@@ -20,7 +20,7 @@ class Emn_Ai
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
 		$this->define_cron_hooks();
-		$this->define_constants();
+
 		$this->loader->add_action('init', $this, 'brochure_preview_trigger');
 		// --- [แก้ไข] ย้ายการตั้งเวลา Cron มาจัดการตอน Activate/Deactivate ปลั๊กอิน ---
 		// หมายเหตุ: คุณต้องมีไฟล์หลักของปลั๊กอินที่ระบุ EMN_AI_PLUGIN_FILE
@@ -121,15 +121,7 @@ class Emn_Ai
 		return $schedules;
 	}
 
-	private function define_constants()
-	{
-		define('EMN_AI_DEFAULT_COMPANY_NAME', 'Halal Directory');
-		define('EMN_AI_DEFAULT_LOGO', 'https://www.halalthai.com/wp-content/uploads/2024/12/halplus-directory-logo.png');
-		define('EMN_AI_DEFAULT_ADDRESS', '89/22 Moo.3, Khlongsam, Khlongluang, Pathumthani 12120');
-		define('EMN_AI_DEFAULT_TEL', '(+66) 2-096-9900');
-		define('EMN_AI_DEFAULT_EMAIL', 'info@halalscience.org');
-		define('EMN_AI_DEFAULT_WEBSITE', 'www.halalscience.org');
-	}
+
 	/**
 	 * ดึงข้อมูลสินค้าทั้งหมดที่จำเป็นสำหรับสร้างโบรชัวร์
 	 * @param array $product_ids_array อาร์เรย์ของ ID สินค้า
@@ -161,9 +153,21 @@ class Emn_Ai
 				}
 			}
 
-			// ดึงข้อมูล Tier Prices จาก MarketKing
-			$tiers_prices = maybe_unserialize(get_post_meta($product_id, 'marketking_group_price_tiers', true));
+			// B2C visible for logged out users (Guest)
+			$tiered_price_data_string = get_post_meta($product_id, 'b2bking_product_pricetiers_group_b2c', true);
 
+			$tiers_prices = [];
+			if (!empty($tiered_price_data_string)) {
+				// B2BKing stores data like "10:90;20:80;"
+				$tiers_raw = explode(';', trim($tiered_price_data_string, ';'));
+				foreach ($tiers_raw as $tier) {
+					$parts = explode(':', $tier);
+					if (count($parts) === 2) {
+						// แปลงข้อมูลให้อยู่ในรูปแบบที่ Template เราต้องการ
+						$tiers_prices[] = ['quantity' => $parts[0], 'price' => $parts[1]]; // B2BKing อาจไม่มีส่วนลดเป็น % ตรงๆ
+					}
+				}
+			}
 			// ดึงข้อมูล ACF Fields ผ่านคลาส Admin
 			$plugin_admin = new Emn_Ai_Admin($this->get_plugin_name(), $this->get_version());
 
@@ -394,6 +398,8 @@ class Emn_Ai
 					]
 				],
 				'default_font' => 'inter'
+	
+				
 			]);
 
 			$mpdf->WriteHTML($html_content);
