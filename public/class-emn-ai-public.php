@@ -23,6 +23,7 @@
 class Emn_Ai_Public
 {
 
+
 	/**
 	 * The ID of this plugin.
 	 *
@@ -148,7 +149,7 @@ class Emn_Ai_Public
 						return true;
 					}
 				),
-					'email'       => array(
+				'email'       => array(
 					'required'          => true,
 					'description'       => 'The email address to send the brochure to.',
 					'type'              => 'string',
@@ -333,43 +334,44 @@ class Emn_Ai_Public
 		}
 	}
 
-	/**
- * ดึงข้อมูล Vendor จาก Product ID
- * @param int $product_id ID ของสินค้า
- * @return array|null ข้อมูลของ Vendor หรือ null ถ้าไม่พบ
- */
-public static function get_vendor_info_by_product_id($product_id)
-{
-    // 1. ดึง ID ของผู้เขียน (Vendor) จาก Product Post
-    $vendor_id = get_post_field('post_author', $product_id);
+	public static function get_vendor_info_by_product_id($product_id)
+	{
+		// 1. ดึง ID ของผู้เขียน (Vendor) จาก Product Post
+		$vendor_id = get_post_field('post_author', $product_id);
 
-    if (empty($vendor_id)) {
-        return null;
-    }
+		if (empty($vendor_id)) {
+			return null;
+		}
+        
+        // ดึงข้อมูลพื้นฐานของ User
+        $vendor_user_data = get_userdata($vendor_id);
+        $store_name_default = !empty($vendor_user_data) ? $vendor_user_data->display_name : '';
 
-    // 2. ดึงข้อมูล Meta ของ Vendor จากตาราง usermeta
-    // หมายเหตุ: 'meta_key' เหล่านี้เป็นเพียงตัวอย่างที่ MarketKing อาจใช้งาน
-    // คุณอาจต้องตรวจสอบจากฐานข้อมูลจริงว่า MarketKing ใช้ key ชื่ออะไร
-    $vendor_data = [
-        'id'          => $vendor_id,
-        'store_name'  => get_user_meta($vendor_id, 'marketking_store_name', true) ?? '',
-        'logo_url'    => get_user_meta($vendor_id, 'marketking_logo', true) ?? '',
-        'phone'       => get_user_meta($vendor_id, 'marketking_phone', true) ?? '',
-        'address'     => get_user_meta($vendor_id, 'b2bking_billing_address_1', true) ?? '', // ลองดึงจาก B2BKing
-        'email'       => get_the_author_meta('user_email', $vendor_id),
-    ];
 
-    // ตัวอย่างการดึงที่อยู่เพิ่มเติมจาก B2BKing
-    $city     = get_user_meta($vendor_id, 'b2bking_billing_city', true);
-    $postcode = get_user_meta($vendor_id, 'b2bking_billing_postcode', true);
-    if ($city) {
-        $vendor_data['address'] .= ', ' . $city;
-    }
-    if ($postcode) {
-        $vendor_data['address'] .= ' ' . $postcode;
-    }
+		// 2. ดึงข้อมูล Meta ของ Vendor จากตาราง usermeta โดยใช้ meta_key ของ MarketKing
+        // ที่อยู่
+        $address1 = get_user_meta($vendor_id, 'billing_address_1', true);
+        $address2 = get_user_meta($vendor_id, 'billing_address_2', true);
+        $city     = get_user_meta($vendor_id, 'billing_city', true);
+        $state    = get_user_meta($vendor_id, 'billing_state', true);
+        $postcode = get_user_meta($vendor_id, 'billing_postcode', true);
+        $country  = get_user_meta($vendor_id, 'billing_country', true);
+        
+        // รวมข้อมูลที่อยู่เป็นข้อความเดียว (กรองค่าว่างออกไป)
+        $full_address_parts = array_filter([$address1, $address2, $city, $state, $postcode, $country]);
+        $full_address = !empty($full_address_parts) ? implode(', ', $full_address_parts) : 'N/A';
 
-    return $vendor_data;
-}
-	
+
+		$vendor_info = [
+			'id'          => $vendor_id,
+			'store_name'  => get_user_meta($vendor_id, 'marketking_store_name', true) ?: $store_name_default, // ใช้ marketking_store_name ก่อน ถ้าไม่มีก็ใช้ display_name
+			'logo_url'    => get_user_meta($vendor_id, 'marketking_profile_logo_image', true) ?: '',
+			'phone'       => get_user_meta($vendor_id, 'billing_phone', true) ?: 'N/A', // ใช้ billing_phone
+			'address'     => $full_address,
+			'email'       => !empty($vendor_user_data->user_email) ? $vendor_user_data->user_email : 'N/A',
+		];
+
+
+		return $vendor_info;
+	}
 }
