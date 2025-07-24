@@ -301,7 +301,7 @@
         <p>Generated on <?php echo date_i18n('j F Y'); ?></p>
     </div>
 
-  
+
         <div class="content-pages" style="page: content-page;">
             <?php if (!empty($products_data)): ?>
                 <?php foreach ($products_data as $index => $product): ?>
@@ -503,14 +503,14 @@
                         <?php endif; ?>
 
                         <?php if ($index < count($products_data) - 1): ?>
-                            <!-- <div class="page-break"></div> -->
+                          
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
 
         </div>
-        
+  
 
             <div class="back-cover" style="page: back-cover-page;">
                 <img class="logo" src="<?php echo esc_url(plugins_url('public/images/halplus-directory-logo.png', dirname(__FILE__, 2))); ?>" alt="Halplus Directory Logo">
