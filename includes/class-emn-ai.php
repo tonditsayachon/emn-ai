@@ -91,6 +91,9 @@ class Emn_Ai
 	private function define_cron_hooks()
 	{
 		$this->loader->add_action('halal_ai_process_brochure_queue_hook', $this, 'process_brochure_queue');
+
+		// --- [เพิ่มส่วนนี้] Hook ใหม่ ---
+		$this->loader->add_action('halal_ai_cleanup_old_brochures_hook', $this, 'cleanup_old_brochures');
 		$this->loader->add_filter('cron_schedules', $this, 'add_ten_minute_cron_interval');
 	}
 
@@ -102,6 +105,11 @@ class Emn_Ai
 		if (!wp_next_scheduled('halal_ai_process_brochure_queue_hook')) {
 			wp_schedule_event(time(), 'ten_minutes', 'halal_ai_process_brochure_queue_hook');
 		}
+
+		// --- [เพิ่มส่วนนี้] Cron Job ใหม่สำหรับลบไฟล์เก่า ---
+		if (!wp_next_scheduled('halal_ai_cleanup_old_brochures_hook')) {
+			wp_schedule_event(time(), 'daily', 'halal_ai_cleanup_old_brochures_hook');
+		}
 	}
 
 	/**
@@ -110,6 +118,9 @@ class Emn_Ai
 	public function clear_scheduled_events()
 	{
 		wp_clear_scheduled_hook('halal_ai_process_brochure_queue_hook');
+
+		// --- [เพิ่มส่วนนี้] ล้าง Cron Job ใหม่ ---
+		wp_clear_scheduled_hook('halal_ai_cleanup_old_brochures_hook');
 	}
 
 	public function add_ten_minute_cron_interval($schedules)
@@ -140,7 +151,7 @@ class Emn_Ai
 			$product = wc_get_product($product_id);
 
 			if (!$product || $product->get_status() !== 'publish') {
-				error_log('Emn AI [Data Fetch]: Could not find or product is not published for product ID: ' . $product_id);
+				//error_log('Emn AI [Data Fetch]: Could not find or product is not published for product ID: ' . $product_id);
 				continue;
 			}
 
@@ -179,34 +190,34 @@ class Emn_Ai
 				'featured_image'    => get_the_post_thumbnail_url($product_id, 'full'),
 				'vendor_info'       => Emn_Ai_Public::get_vendor_info_by_product_id($product_id),
 				'regular_price' => $product->get_regular_price(),
-				'sale_price'    => $product->get_sale_price(),		
+				'sale_price'    => $product->get_sale_price(),
 				'tiers_prices'      => $tiers_prices,
 				'product_gallery'   => $gallery_image_urls,
 				'acf_fields'        => (object) $plugin_admin->emn_get_acf($product_id),
 			];
 
-			error_log('Emn AI [Data Fetch]: Successfully fetched data for product ID: ' . $product_id);
+			//error_log('Emn AI [Data Fetch]: Successfully fetched data for product ID: ' . $product_id);
 		}
 
 		return $products_data_for_template;
 	}
 	public function process_brochure_queue()
 	{
-		
-	
+
+
 
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'halal_ai_schedule_log';
-		error_log('Emn AI Cron: Starting brochure queue processing.');
+		//error_log('Emn AI Cron: Starting brochure queue processing.');
 
 		$job = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE status = %s ORDER BY log_id ASC LIMIT 1", 'scheduled'));
 		if (is_null($job)) {
 			return;
 		}
 		// --- [เพิ่ม] ดึง cover style จาก job data ---
-    $brochure_meta = json_decode($job->brochure_data, true);
-    $cover_style = isset($brochure_meta['cover_style']) ? absint($brochure_meta['cover_style']) : 1;
-		error_log('Emn AI Cron: Processing job ID: ' . $job->log_id . ' for email: ' . $job->recipient_email);
+		$brochure_meta = json_decode($job->brochure_data, true);
+		$cover_style = isset($brochure_meta['cover_style']) ? absint($brochure_meta['cover_style']) : 1;
+		//error_log('Emn AI Cron: Processing job ID: ' . $job->log_id . ' for email: ' . $job->recipient_email);
 
 		$product_ids_array = json_decode($job->product_ids);
 
@@ -215,11 +226,11 @@ class Emn_Ai
 
 		if (empty($products_data_for_template)) {
 			$wpdb->update($table_name, ['status' => 'failed', 'brochure_data' => 'Error: No valid products found.'], ['log_id' => $job->log_id]);
-			error_log('Emn AI Error: Job ID ' . $job->log_id . ' failed. Reason: No valid product data could be compiled.');
+			//error_log('Emn AI Error: Job ID ' . $job->log_id . ' failed. Reason: No valid product data could be compiled.');
 			return;
 		}
 		// --- [เพิ่ม Log] ตรวจสอบก่อนสร้าง HTML ---
-		error_log('Emn AI Cron: Data compiled. Attempting to generate HTML from template.');
+		//error_log('Emn AI Cron: Data compiled. Attempting to generate HTML from template.');
 		ob_start();
 		$products_data = $products_data_for_template;
 		include plugin_dir_path(dirname(__FILE__)) . 'public/partials/emn-ai-brochure-template.php';
@@ -228,12 +239,12 @@ class Emn_Ai
 		if (empty($html_content) || ob_get_length() > 0) { // ตรวจสอบว่ามี output ที่ไม่ต้องการหรือไม่
 			ob_end_clean(); // เคลียร์ output ที่อาจค้างอยู่
 			$wpdb->update($table_name, ['status' => 'failed', 'brochure_data' => 'Error: Failed to get content from template or buffer had output.'], ['log_id' => $job->log_id]);
-			error_log('Emn AI Error: Failed to get content from template for job ID: ' . $job->log_id);
+			//error_log('Emn AI Error: Failed to get content from template for job ID: ' . $job->log_id);
 			return;
 		}
 
 		// --- [เพิ่ม Log] ตรวจสอบก่อนสร้าง PDF ---
-		error_log('Emn AI Cron: HTML generated. Attempting to create PDF with mPDF...');
+		//error_log('Emn AI Cron: HTML generated. Attempting to create PDF with mPDF...');
 		try {
 			$brochure_dir = WP_CONTENT_DIR . '/halal-ai/jsons/brochures';
 			if (!file_exists($brochure_dir)) {
@@ -248,17 +259,17 @@ class Emn_Ai
 			$mpdf->Output($file_path, 'F');
 		} catch (\Mpdf\MpdfException $e) {
 			$wpdb->update($table_name, ['status' => 'failed', 'brochure_data' => 'mPDF Error: ' . $e->getMessage()], ['log_id' => $job->log_id]);
-			error_log('Emn AI mPDF Error for job ID ' . $job->log_id . ': ' . $e->getMessage());
+			//error_log('Emn AI mPDF Error for job ID ' . $job->log_id . ': ' . $e->getMessage());
 			return;
 		}
 
 		// --- [เพิ่ม Log] ตรวจสอบหลังสร้าง PDF ---
 		if (!file_exists($file_path) || filesize($file_path) === 0) {
 			$wpdb->update($table_name, ['status' => 'failed', 'brochure_data' => 'Error: PDF file was not created or is empty.'], ['log_id' => $job->log_id]);
-			error_log('Emn AI Error: PDF file was not created or is empty for job ID: ' . $job->log_id);
+			//error_log('Emn AI Error: PDF file was not created or is empty for job ID: ' . $job->log_id);
 			return;
 		}
-		error_log('Emn AI Cron: PDF generated successfully for job ID: ' . $job->log_id . '. Attempting to send email...');
+		//error_log('Emn AI Cron: PDF generated successfully for job ID: ' . $job->log_id . '. Attempting to send email...');
 
 		// --- [เพิ่ม Log] ตรวจสอบก่อนส่งอีเมล ---
 		$to = $job->recipient_email;
@@ -272,11 +283,11 @@ class Emn_Ai
 
 		// --- [เพิ่ม Log] ตรวจสอบหลังส่งอีเมล ---
 		if ($sent) {
-			error_log('Emn AI Cron: wp_mail() returned TRUE. Email sent successfully for job ID: ' . $job->log_id);
+			//error_log('Emn AI Cron: wp_mail() returned TRUE. Email sent successfully for job ID: ' . $job->log_id);
 			$brochure_data = ['name' => basename($file_path), 'size' => filesize($file_path), 'url' => $file_url];
 			$wpdb->update($table_name, ['status' => 'sent', 'sent_timestamp' => current_time('mysql', 1), 'brochure_data' => json_encode($brochure_data)], ['log_id' => $job->log_id]);
 		} else {
-			error_log('Emn AI Cron: wp_mail() returned FALSE. Failed to send email for job ID: ' . $job->log_id);
+			//error_log('Emn AI Cron: wp_mail() returned FALSE. Failed to send email for job ID: ' . $job->log_id);
 			$wpdb->update($table_name, ['status' => 'failed', 'brochure_data' => 'Error: wp_mail() returned false.'], ['log_id' => $job->log_id]);
 			if (file_exists($file_path)) {
 				unlink($file_path);
@@ -344,8 +355,8 @@ class Emn_Ai
 					]
 				],
 				'default_font' => 'inter'
-	
-				
+
+
 			]);
 
 			$mpdf->WriteHTML($html_content);
@@ -361,4 +372,71 @@ class Emn_Ai
 		// หยุดการทำงานทั้งหมด
 		exit;
 	}
+	// ... ข้างใน class Emn_Ai ...
+
+	/**
+	 * Cleanup old brochure files and update their status in the database.
+	 * Runs daily via WP-Cron.
+	 */
+	public function cleanup_old_brochures()
+	{
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'halal_ai_schedule_log';
+		$brochure_dir = WP_CONTENT_DIR . '/halal-ai/jsons/brochures/';
+
+		// กำหนดเวลา 15 วันที่แล้ว
+		$threshold_date = date('Y-m-d H:i:s', strtotime('-15 days'));
+
+		// ค้นหา Jobs ทั้งหมดที่ถูกส่งไปแล้วและเก่ากว่า 15 วัน
+		$old_jobs = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT log_id, brochure_data FROM $table_name WHERE status = %s AND sent_timestamp < %s",
+				'sent',
+				$threshold_date
+			)
+		);
+
+		if (empty($old_jobs)) {
+			if (defined('WP_DEBUG') && WP_DEBUG === true) {
+				error_log('Emn AI Cleanup: No old brochures to clean up.');
+			}
+			return; // ไม่มีงานเก่าให้ลบ
+		}
+
+		$cleaned_count = 0;
+
+		foreach ($old_jobs as $job) {
+			$brochure_data = json_decode($job->brochure_data, true);
+
+			// ตรวจสอบว่ามีข้อมูลไฟล์ใน log หรือไม่
+			if (isset($brochure_data['name'])) {
+				$file_path = $brochure_dir . $brochure_data['name'];
+
+				// 1. ลบไฟล์ออกจากเซิร์ฟเวอร์
+				if (file_exists($file_path)) {
+					unlink($file_path);
+				}
+			}
+
+			// 2. อัปเดตสถานะในฐานข้อมูล
+			$new_brochure_data = json_encode(['message' => 'File archived and deleted on ' . current_time('mysql')]);
+			$wpdb->update(
+				$table_name,
+				[
+					'status'        => 'archived', // กำหนดสถานะใหม่
+					'brochure_data' => $new_brochure_data
+				],
+				['log_id' => $job->log_id]
+			);
+
+			$cleaned_count++;
+		}
+
+		if ($cleaned_count > 0 && defined('WP_DEBUG') && WP_DEBUG === true) {
+			error_log("Emn AI Cleanup: Successfully cleaned up and archived {$cleaned_count} old brochure files.");
+		}
+	}
+
+	// ฟังก์ชัน brochure_preview_trigger() จะอยู่ต่อจากตรงนี้...
+
 }

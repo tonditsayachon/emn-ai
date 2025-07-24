@@ -84,7 +84,7 @@ class Emn_Ai_Admin
             wp_send_json_success(['message' => 'Directory cleared successfully.', 'deleted_count' => $files_deleted_count]);
 
         } catch (Exception $e) {
-            error_log('EMN AI - Error clearing directory: ' . $e->getMessage());
+            //error_log('EMN AI - Error clearing directory: ' . $e->getMessage());
             wp_send_json_error(['message' => 'An error occurred while clearing the directory.']);
         }
     }
