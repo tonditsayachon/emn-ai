@@ -13,8 +13,10 @@
     "keywords": ["wordpress", "woocommerce", "ai", "pdf", "automation"],
     "minimum-stability": "stable",
     "require": {
-        "php": ">=7.4",
-        "mpdf/mpdf": "^8.0",
+
+     "php": "^7.4",      
+  "mpdf/mpdf": "^8.0",           
+
         "ext-gd": "*"
     },
     "require-dev": {
