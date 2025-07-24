@@ -67,7 +67,7 @@ foreach ($products_data as $i => $product) {
     <style>
         @page {
             margin-top: 50px;
-            margin-left: 30px;
+            margin-left: 50px;
             margin-right: 30px;
             margin-bottom: 50px;
             footer: html_myFooter;
@@ -158,7 +158,7 @@ foreach ($products_data as $i => $product) {
 
 
         .vendor-contact {
-            color: #333;
+            color: #000;
             font-weight: 300;
         }
 
@@ -169,7 +169,7 @@ foreach ($products_data as $i => $product) {
         }
 
         .description {
-            color: #333;
+            color: #000;
             margin-bottom: 16px;
 
 
@@ -303,7 +303,7 @@ foreach ($products_data as $i => $product) {
 
                 <table class="main-content-table" width="100%" cellspacing="4" cellpadding="4">
                     <tr>
-                        <td class="left-column" style="width:48%;">
+                        <td class="left-column" style="width:48%;border:2px solid #ddd;padding: 5px;">
                             <div class="feature-image">
                                 <?php if (!empty($product->featured_image)): ?>
                                     <?php
@@ -317,7 +317,7 @@ foreach ($products_data as $i => $product) {
                                     ?>
                                     <div style="background: <?php echo $is_landscape ? '#f0f0f0' : 'none'; ?>;">
                                         <img
-                                            style="max-width:450px; border:1px solid #ddd;"
+                                            style="max-width:450px;"
                                             src="<?php echo $image_url; ?>"
                                             alt="<?php echo esc_attr($product->name); ?>">
                                     </div>
@@ -352,13 +352,31 @@ foreach ($products_data as $i => $product) {
                                 <tr>
                                     <td>
                                         <div class="vendor-contact">
-                                            <?php echo wp_kses_post('<strong>Address: </strong>' . nl2br(esc_html($address))); ?><br>
-                                            <ul>
-                                                <li> <strong>Tel:</strong> <a href="tel:<?php echo $tel ?>"><?php echo esc_html($tel); ?></a></li>
-                                                <li> <strong>Email:</strong> <a href="mailto:<?php echo $email ?>"><?php echo esc_html($email); ?></a></li>
-                                            </ul>
+                                            <p><?php echo wp_kses_post('<strong>Address: </strong>' . nl2br(esc_html($address))); ?></p>
+
                                         </div>
                                     </td>
+                                </tr>
+                                <tr>
+                                    <td height="8"></td>
+                                </tr> <!-- spacing -->
+                                <tr>
+                                    <td>
+
+                                        <strong>Tel:</strong> <a href="tel:<?php echo $tel ?>"><?php echo esc_html($tel); ?></a>
+
+
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>
+
+
+                                        <strong>Email:</strong> <a href="mailto:<?php echo $email ?>"><?php echo esc_html($email); ?></a>
+
+                                    </td>
+
                                 </tr>
                                 <tr>
                                     <td height="10"></td>
@@ -373,14 +391,14 @@ foreach ($products_data as $i => $product) {
                                                     <thead>
                                                         <tr>
                                                             <th>Quantity</th>
-                                                            <th>Price</th>
+                                                            <th style="text-align: right;">Price</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         <?php foreach ($product->tiers_prices as $tier): ?>
                                                             <tr>
                                                                 <td><?php echo isset($tier['quantity']) && $tier['quantity'] !== null ? number_format((int)$tier['quantity']) : 'N/A'; ?></td>
-                                                                <td>฿<?php echo isset($tier['price']) && $tier['price'] !== null ? number_format((float)$tier['price'], 2) : 'N/A'; ?></td>
+                                                                <td style="text-align: right;">$<?php echo isset($tier['price']) && $tier['price'] !== null ? number_format((float)$tier['price'], 2) : 'N/A'; ?></td>
                                                             </tr>
                                                         <?php endforeach; ?>
                                                     </tbody>
@@ -435,11 +453,11 @@ foreach ($products_data as $i => $product) {
 
             <?php endforeach; ?>
         <?php endif; ?>
-<htmlpagefooter name="myFooter">
-    <div id="footer">
-        Page {PAGENO} of {nb}
-    </div>
-</htmlpagefooter>
+        <htmlpagefooter name="myFooter">
+            <div id="footer">
+                Page {PAGENO} of {nb}
+            </div>
+        </htmlpagefooter>
 
 </body>
 
