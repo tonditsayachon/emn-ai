@@ -157,11 +157,11 @@ class Emn_Ai_Public
 					'validate_callback' => 'is_email'
 				),
 				'cover'       => array(
-					'required'          => false, // ไม่บังคับ
-					'description'       => 'The desired cover style. e.g., "corporate" or "modern".',
-					'type'              => 'string',
-					'default'           => 'default', // กำหนดค่าเริ่มต้น
-					'sanitize_callback' => 'sanitize_text_field',
+					'required'          => false,
+					'description'       => 'The desired cover style ID. e.g., 1, 2, or 3.',
+					'type'              => 'integer', // เปลี่ยนเป็น integer
+					'default'           => 1,         // กำหนดค่าเริ่มต้นเป็น 1
+					'sanitize_callback' => 'absint',  // ใช้ absint เพื่อให้แน่ใจว่าเป็นจำนวนเต็มบวก
 				),
 			),
 		]);
@@ -328,7 +328,7 @@ class Emn_Ai_Public
 				// บันทึก JSON string ลงในคอลัมน์ใหม่
 				'product_ids'     => $product_ids_json,
 				'recipient_email' => $recipient_email,
-				'brochure_data'   => json_encode(['cover_style' => $cover_style]), 
+				'brochure_data'   => json_encode(['cover_style' => $cover_style]),
 				'request_date'    => current_time('mysql', 1),
 				'status'          => 'scheduled',
 			]

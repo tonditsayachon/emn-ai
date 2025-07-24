@@ -205,7 +205,7 @@ class Emn_Ai
 		}
 		// --- [เพิ่ม] ดึง cover style จาก job data ---
     $brochure_meta = json_decode($job->brochure_data, true);
-    $cover_style = isset($brochure_meta['cover_style']) ? $brochure_meta['cover_style'] : 'default';
+    $cover_style = isset($brochure_meta['cover_style']) ? absint($brochure_meta['cover_style']) : 1;
 		error_log('Emn AI Cron: Processing job ID: ' . $job->log_id . ' for email: ' . $job->recipient_email);
 
 		$product_ids_array = json_decode($job->product_ids);
@@ -306,7 +306,7 @@ class Emn_Ai
 		$product_ids_string = sanitize_text_field($_GET['p_ids']);
 		$product_ids_array = explode(',', $product_ids_string);
 		$product_ids_array = array_map('intval', $product_ids_array);
-		$cover_style = isset($_GET['cover']) ? sanitize_text_field($_GET['cover']) : 'default';
+		$cover_style = isset($_GET['cover']) ? absint($_GET['cover']) : 1;
 		$products_data = $this->get_brochure_products_data($product_ids_array);
 
 		if (empty($products_data)) {

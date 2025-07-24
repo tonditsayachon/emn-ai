@@ -5,7 +5,7 @@
  *
  * @var array $products_data Contains an array of product data objects.
  */
-$cover_style = $cover_style ?? 'default';
+$cover_style = isset($cover_style) ? absint($cover_style) : 1;
 
 // --- [เพิ่ม] หา path ไปยังโฟลเดอร์ partials/covers ---
 $covers_path = plugin_dir_path(__FILE__) . 'covers/';
@@ -301,14 +301,15 @@ $covers_path = plugin_dir_path(__FILE__) . 'covers/';
     <?php
     // --- [แก้ไข] ส่วนของ Front Cover ---
     switch ($cover_style) {
-        case 'corporate':
+        case 2: // Corporate Style
             include $covers_path . 'corporate-front.php';
             break;
-        case 'modern':
+        case 3: // Minimalist (Modern) Style
             include $covers_path . 'modern-front.php';
             break;
+        case 1: // Default Style
         default:
-            // โค้ดหน้าปกเดิมของคุณ
+            // โค้ดหน้าปกเดิมของคุณ (Style 1)
     ?>
             <div class="front-cover" style="page: cover-page;">
                 <img class="logo" src="<?php echo esc_url(plugins_url('public/images/halplus-directory-logo.png', dirname(__FILE__, 2))); ?>" alt="Halplus Directory Logo">
@@ -534,14 +535,15 @@ $covers_path = plugin_dir_path(__FILE__) . 'covers/';
     <?php
     // --- [แก้ไข] ส่วนของ Back Cover ---
     switch ($cover_style) {
-        case 'corporate':
+        case 2: // Corporate Style
             include $covers_path . 'corporate-back.php';
             break;
-        case 'modern':
+        case 3: // Minimalist (Modern) Style
             include $covers_path . 'modern-back.php';
             break;
+        case 1: // Default Style
         default:
-            // โค้ดปกหลังเดิมของคุณ
+            // โค้ดปกหลังเดิมของคุณ (Style 1)
     ?>
             <div class="back-cover" style="page: back-cover-page;">
                 <img class="logo" src="<?php echo esc_url(plugins_url('public/images/halplus-directory-logo.png', dirname(__FILE__, 2))); ?>" alt="Halplus Directory Logo">

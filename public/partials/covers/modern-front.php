@@ -12,6 +12,7 @@
         position: relative; /* For positioning child elements */
         font-family: 'Inter', sans-serif; /* Make sure this font is loaded */
         box-sizing: border-box;
+        padding: 30px;
     }
     .minimalist-front-cover .side-accent {
         position: absolute;

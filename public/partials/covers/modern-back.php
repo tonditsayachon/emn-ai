@@ -12,6 +12,7 @@
         position: relative;
         font-family: 'Inter', sans-serif;
         box-sizing: border-box;
+        padding: 30px;
     }
     .minimalist-back-cover .contact-block {
         position: absolute;
