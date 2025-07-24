@@ -192,63 +192,8 @@ class Emn_Ai
 	}
 	public function process_brochure_queue()
 	{
-		// // --- [เพิ่มเข้ามา] เพิ่มลิมิตเวลาและหน่วยความจำชั่วคราว ---
-		// // ลองเพิ่มเวลาและหน่วยความจำ เพื่อป้องกันปัญหาสคริปต์หมดเวลาขณะสร้าง PDF
-		// @ini_set('memory_limit', '512M');
-		// @set_time_limit(300); // 300 วินาที = 5 นาที
-
-		// global $wpdb;
-		// $table_name = $wpdb->prefix . 'halal_ai_schedule_log';
-		// error_log('Emn AI Cron: Starting brochure queue processing.');
-
-		// $job = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE status = %s ORDER BY log_id ASC LIMIT 1", 'scheduled'));
-		// if (is_null($job)) {
-		// 	return;
-		// }
-
-		// error_log('Emn AI Cron: Processing job ID: ' . $job->log_id . ' for email: ' . $job->recipient_email);
-
-		// $product_ids_array = json_decode($job->product_ids);
-		// $products_data_for_template = [];
-
-		// if (!is_array($product_ids_array) || empty($product_ids_array)) {
-		// 	$wpdb->update($table_name, ['status' => 'failed', 'brochure_data' => 'Error: Invalid product IDs.'], ['log_id' => $job->log_id]);
-		// 	error_log('Emn AI Error: Job ID ' . $job->log_id . ' failed. Reason: Invalid product IDs.');
-		// 	return;
-		// }
-
-		// foreach ($product_ids_array as $product_id) {
-		// 	// ... (ส่วนของการดึงข้อมูลสินค้าเหมือนเดิม) ...
-		// 	$product = wc_get_product($product_id);
-		// 	if (!$product) continue;
-
-		// 	$gallery_image_urls = [];
-		// 	$gallery_ids = $product->get_gallery_image_ids();
-		// 	if ($gallery_ids) {
-		// 		foreach (array_slice($gallery_ids, 0, 6) as $gallery_id) {
-		// 			$gallery_image_urls[] = wp_get_attachment_url($gallery_id);
-		// 		}
-		// 	}
-
-		// 	$products_data_for_template[] = (object)[
-		// 		'id' => $product->get_id(),
-		// 		'name' => $product->get_name(),
-		// 		'description' => $product->get_description(),
-		// 		'featured_image' => get_the_post_thumbnail_url($product_id, 'full'),
-		// 		'vendor_info' => Emn_Ai_Public::get_vendor_info_by_product_id($product_id),
-		// 		'tiers_prices' => maybe_unserialize(get_post_meta($product_id, 'marketking_group_price_tiers', true)),
-		// 		'product_gallery' => $gallery_image_urls,
-		// 	];
-		// 	error_log('Emn AI Cron: Successfully fetched data for product ID: ' . $product_id);
-		// }
-
-		// if (empty($products_data_for_template)) {
-		// 	$wpdb->update($table_name, ['status' => 'failed', 'brochure_data' => 'Error: No valid products found.'], ['log_id' => $job->log_id]);
-		// 	error_log('Emn AI Error: Job ID ' . $job->log_id . ' failed. Reason: No valid product data could be compiled.');
-		// 	return;
-		// }
-		@ini_set('memory_limit', '512M');
-		@set_time_limit(300);
+		
+	
 
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'halal_ai_schedule_log';
@@ -258,7 +203,9 @@ class Emn_Ai
 		if (is_null($job)) {
 			return;
 		}
-
+		// --- [เพิ่ม] ดึง cover style จาก job data ---
+    $brochure_meta = json_decode($job->brochure_data, true);
+    $cover_style = isset($brochure_meta['cover_style']) ? $brochure_meta['cover_style'] : 'default';
 		error_log('Emn AI Cron: Processing job ID: ' . $job->log_id . ' for email: ' . $job->recipient_email);
 
 		$product_ids_array = json_decode($job->product_ids);
@@ -340,10 +287,7 @@ class Emn_Ai
 	 * สร้างหน้า Preview สำหรับ Template ของ Brochure โดยไม่ต้องรอ Cron
 	 * URL: /?preview_brochure=true&p_ids=123,456
 	 */
-	/**
-	 * สร้างหน้า Preview สำหรับ Template ของ Brochure เป็นไฟล์ PDF โดยตรง
-	 * URL: /?preview_brochure=true&p_ids=123,456
-	 */
+
 	public function brochure_preview_trigger()
 	{
 		if (!isset($_GET['preview_brochure']) || $_GET['preview_brochure'] !== 'true') {
@@ -362,7 +306,7 @@ class Emn_Ai
 		$product_ids_string = sanitize_text_field($_GET['p_ids']);
 		$product_ids_array = explode(',', $product_ids_string);
 		$product_ids_array = array_map('intval', $product_ids_array);
-
+		$cover_style = isset($_GET['cover']) ? sanitize_text_field($_GET['cover']) : 'default';
 		$products_data = $this->get_brochure_products_data($product_ids_array);
 
 		if (empty($products_data)) {

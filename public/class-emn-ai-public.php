@@ -156,6 +156,13 @@ class Emn_Ai_Public
 					'format'            => 'email',
 					'validate_callback' => 'is_email'
 				),
+				'cover'       => array(
+					'required'          => false, // ไม่บังคับ
+					'description'       => 'The desired cover style. e.g., "corporate" or "modern".',
+					'type'              => 'string',
+					'default'           => 'default', // กำหนดค่าเริ่มต้น
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 			),
 		]);
 	}
@@ -311,7 +318,7 @@ class Emn_Ai_Public
 		// ข้อมูลถูกตรวจสอบและกรองมาจาก 'args' ใน register_rest_route แล้ว
 		$sanitized_ids = $request->get_param('product_ids');
 		$recipient_email = $request->get_param('email');
-
+		$cover_style = $request->get_param('cover');
 		// แปลง array ของ ID ให้เป็น JSON string เพื่อเตรียมบันทึกลงฐานข้อมูล
 		$product_ids_json = json_encode($sanitized_ids);
 
@@ -321,7 +328,7 @@ class Emn_Ai_Public
 				// บันทึก JSON string ลงในคอลัมน์ใหม่
 				'product_ids'     => $product_ids_json,
 				'recipient_email' => $recipient_email,
-				'brochure_data'   => '',
+				'brochure_data'   => json_encode(['cover_style' => $cover_style]), 
 				'request_date'    => current_time('mysql', 1),
 				'status'          => 'scheduled',
 			]
@@ -342,24 +349,24 @@ class Emn_Ai_Public
 		if (empty($vendor_id)) {
 			return null;
 		}
-        
-        // ดึงข้อมูลพื้นฐานของ User
-        $vendor_user_data = get_userdata($vendor_id);
-        $store_name_default = !empty($vendor_user_data) ? $vendor_user_data->display_name : '';
+
+		// ดึงข้อมูลพื้นฐานของ User
+		$vendor_user_data = get_userdata($vendor_id);
+		$store_name_default = !empty($vendor_user_data) ? $vendor_user_data->display_name : '';
 
 
 		// 2. ดึงข้อมูล Meta ของ Vendor จากตาราง usermeta โดยใช้ meta_key ของ MarketKing
-        // ที่อยู่
-        $address1 = get_user_meta($vendor_id, 'billing_address_1', true);
-        $address2 = get_user_meta($vendor_id, 'billing_address_2', true);
-        $city     = get_user_meta($vendor_id, 'billing_city', true);
-        $state    = get_user_meta($vendor_id, 'billing_state', true);
-        $postcode = get_user_meta($vendor_id, 'billing_postcode', true);
-        $country  = get_user_meta($vendor_id, 'billing_country', true);
-        
-        // รวมข้อมูลที่อยู่เป็นข้อความเดียว (กรองค่าว่างออกไป)
-        $full_address_parts = array_filter([$address1, $address2, $city, $state, $postcode, $country]);
-        $full_address = !empty($full_address_parts) ? implode(', ', $full_address_parts) : 'N/A';
+		// ที่อยู่
+		$address1 = get_user_meta($vendor_id, 'billing_address_1', true);
+		$address2 = get_user_meta($vendor_id, 'billing_address_2', true);
+		$city     = get_user_meta($vendor_id, 'billing_city', true);
+		$state    = get_user_meta($vendor_id, 'billing_state', true);
+		$postcode = get_user_meta($vendor_id, 'billing_postcode', true);
+		$country  = get_user_meta($vendor_id, 'billing_country', true);
+
+		// รวมข้อมูลที่อยู่เป็นข้อความเดียว (กรองค่าว่างออกไป)
+		$full_address_parts = array_filter([$address1, $address2, $city, $state, $postcode, $country]);
+		$full_address = !empty($full_address_parts) ? implode(', ', $full_address_parts) : 'N/A';
 
 
 		$vendor_info = [
