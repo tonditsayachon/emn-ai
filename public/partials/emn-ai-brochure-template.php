@@ -6,57 +6,6 @@
  * @var array $products_data Contains an array of product data objects.
  */
 
-
-
-// =================================================================
-// ส่วนที่ 1: ดึงข้อมูล Vendor (ผู้ขาย)
-// =================================================================
-
-// Loop ผ่าน products_data เพื่อเตรียมข้อมูล vendor สำหรับแต่ละ product
-foreach ($products_data as $i => $product) {
-    $vendor_id = get_post_field('post_author', $product->id);
-    $vendor_data = get_userdata($vendor_id);
-    //debug $vendor_data
-
-    // หากไม่พบข้อมูล vendor หรือไม่มีชื่อที่แสดงได้ ให้กำหนดค่าเป็น 'N/A'
-    $vendor_name = (!empty($vendor_data) && !empty($vendor_data->display_name)) ? $vendor_data->display_name : 'N/A';
-
-    // --- START: ส่วนที่แก้ไข ---
-    // ดึงข้อมูลที่อยู่และเบอร์โทรจาก meta key ของ MarketKing
-    $address1 = get_user_meta($vendor_id, 'billing_address_1', true);
-    $address2 = get_user_meta($vendor_id, 'billing_address_2', true);
-    $city = get_user_meta($vendor_id, 'billing_city', true);
-    $state = get_user_meta($vendor_id, 'billing_state', true);
-    $postcode = get_user_meta($vendor_id, 'billing_postcode', true);
-    $country = get_user_meta($vendor_id, 'billing_country', true);
-
-    // รวมข้อมูลที่อยู่เป็นข้อความเดียว
-    $full_address_parts = array_filter([$address1, $address2, $city, $state, $postcode, $country]);
-    $full_address = !empty($full_address_parts) ? implode(', ', $full_address_parts) : 'N/A';
-
-    $vendor_info = [
-        'store_name' => $vendor_name,
-        'logo_url'   => get_user_meta($vendor_id, 'marketking_profile_logo_image', true) ?: '',
-        'address'    => $full_address, // ใช้ที่อยู่ที่รวมแล้ว
-        'phone'      => get_user_meta($vendor_id, 'billing_phone', true) ?: 'N/A', // ใช้ billing_phone
-        'email'      => !empty($vendor_data->user_email) ? $vendor_data->user_email : 'N/A',
-    ];
-    // --- END: ส่วนที่แก้ไข ---
-
-    // หากใช้ปลั๊กอินร้านค้า (Store) อื่นๆ สามารถดึงลิงก์ได้ตามนี้ (ถ้ามี)
-    // สำหรับ MarketKing อาจต้องตรวจสอบฟังก์ชันเฉพาะของปลั๊กอิน
-    $vendor_shop_url = function_exists('marketking') ? marketking()->get_store_link($vendor_id) : '#';
-
-    // เพิ่ม vendor_info เข้าไปใน object ของ product
-    $products_data[$i]->vendor_info = $vendor_info;
-    $products_data[$i]->vendor_shop_url = $vendor_shop_url;
-}
-
-// ... (โค้ดส่วนล่าง)
-
-
-
-
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -65,7 +14,15 @@ foreach ($products_data as $i => $product) {
     <meta charset="UTF-8">
     <title>Product Brochure</title>
     <style>
-        @page {
+        /* --- Page Layout Definitions --- */
+        @page cover-page {
+            footer: none;
+            /* ไม่มี footer ที่หน้าปก */
+            margin: 0;
+            /* ไม่มีขอบเลยเพื่อให้เต็มจอ */
+        }
+
+        @page content-page {
             margin-top: 50px;
             margin-left: 50px;
             margin-right: 30px;
@@ -73,6 +30,69 @@ foreach ($products_data as $i => $product) {
             footer: html_myFooter;
 
 
+        }
+
+        @page back-cover-page {
+            footer: none;
+            /* ไม่มี footer ที่หน้าหลัง */
+            margin: 0;
+            /* ไม่มีขอบเลยเพื่อให้เต็มจอ */
+        }
+
+        /* --- Styling for Cover Content --- */
+        .front-cover {
+            width: 100%;
+            height: 100%;
+            background-color: #f0f0f0;
+        
+            /* สีพื้นหลัง (ตัวอย่าง) */
+            color: white;
+            text-align: center;
+            padding-top: 200px;
+        }
+
+        .front-cover .logo {
+            max-width: 250px;
+            margin-bottom: 30px;
+        }
+
+        .front-cover h1 {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 0;
+               color: #000;
+           
+        }
+
+        .front-cover p {
+            font-size: 24px;
+            font-weight: 300;
+               color: #000;
+        }
+
+
+        /* --- Styling for Back Cover Content --- */
+        .back-cover {
+            width: 100%;
+            height: 100%;
+            background-color: #f0f0f0;
+            /* สีพื้นหลังหน้าหลัง */
+            text-align: center;
+            padding-top: 250px;
+        }
+
+        .back-cover .logo {
+            max-width: 180px;
+            margin-bottom: 20px;
+        }
+
+        .back-cover p {
+            color: #333;
+            font-size: 16px;
+        }
+
+        .back-cover .contact-info {
+            margin-top: 40px;
         }
 
         body {
@@ -275,190 +295,240 @@ foreach ($products_data as $i => $product) {
 
 <body>
 
-    <?php if (!empty($products_data)): ?>
-        <?php foreach ($products_data as $index => $product): ?>
-            <?php
-            // เตรียมข้อมูล Vendor และค่า Default
-            $vendor_info = $product->vendor_info ?? null;
-            $logo_url    = !empty($vendor_info['logo_url']) ? $vendor_info['logo_url'] : $default_logo_url;
-            $store_name  = !empty($vendor_info['store_name']) ? $vendor_info['store_name'] : $default_company_name;
-            $address     = !empty($vendor_info['address']) ? $vendor_info['address'] : $default_address;
-            $tel         = !empty($vendor_info['phone']) ? $vendor_info['phone'] : $default_tel;
-            $email       = !empty($vendor_info['email']) ? $vendor_info['email'] : $default_email;
-            ?>
-            <div class="brochure-page">
+    <div class="front-cover" style="page: cover-page;">
+        <img class="logo" src="<?php echo esc_url(plugins_url('public/images/halplus-directory-logo.png', dirname(__FILE__, 2))); ?>" alt="Halplus Directory Logo">
+        <h1>Product Catalog</h1>
+        <p>Generated on <?php echo date_i18n('j F Y'); ?></p>
+    </div>
 
-                <div class="page-header">
-                    <table class="header-table">
-                        <tr>
-                            <td class="left-col">
-                                <h1 class="product-name" style="text-transform: uppercase;"><?php echo esc_html($product->name); ?></h1>
-                            </td>
-                            <td class="right-col">
-                                <img class="hsc-logo" src="<?php echo esc_url(plugins_url('public/images/halplus-directory-logo.png', dirname(__FILE__, 2))); ?>" alt="Halplus Directory Logo">
-                            </td>
-                        </tr>
-                    </table>
-                </div>
+  
+        <div class="content-pages" style="page: content-page;">
+            <?php if (!empty($products_data)): ?>
+                <?php foreach ($products_data as $index => $product): ?>
+                    <?php
+                    // เตรียมข้อมูล Vendor และค่า Default
+                    $vendor_info = $product->vendor_info ?? null;
+                    $logo_url    = !empty($vendor_info['logo_url']) ? $vendor_info['logo_url'] : $default_logo_url;
+                    $store_name  = !empty($vendor_info['store_name']) ? $vendor_info['store_name'] : $default_company_name;
+                    $address     = !empty($vendor_info['address']) ? $vendor_info['address'] : $default_address;
+                    $tel         = !empty($vendor_info['phone']) ? $vendor_info['phone'] : $default_tel;
+                    $email       = !empty($vendor_info['email']) ? $vendor_info['email'] : $default_email;
+                    ?>
+                 
+                    <div class="brochure-page">
 
-                <table class="main-content-table" width="100%" cellspacing="4" cellpadding="4">
-                    <tr>
-                        <td class="left-column" style="width:48%;border:2px solid #ddd;padding: 5px;">
-                            <div class="feature-image">
-                                <?php if (!empty($product->featured_image)): ?>
-                                    <?php
-                                    // Get image dimensions
-                                    $image_url = esc_url($product->featured_image);
-                                    $image_size = @getimagesize($product->featured_image);
-                                    $is_landscape = false;
-                                    if ($image_size && $image_size[0] > $image_size[1]) {
-                                        $is_landscape = true;
-                                    }
-                                    ?>
-                                    <div style="background: <?php echo $is_landscape ? '#f0f0f0' : 'none'; ?>;">
-                                        <img
-                                            style="max-width:450px;"
-                                            src="<?php echo $image_url; ?>"
-                                            alt="<?php echo esc_attr($product->name); ?>">
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-
-                        <td class="right-column" width="48%" style="vertical-align:top;">
-                            <table width="100%">
+                        <div class="page-header">
+                            <table class="header-table">
                                 <tr>
-                                    <td>
-                                        <div class="vendor-logo">
-                                            <?php if (!empty($logo_url)): ?>
-                                                <img src="<?php echo esc_url($logo_url); ?>" alt="Vendor Logo" style="max-width: 120px;">
-                                            <?php endif; ?>
-                                        </div>
+                                    <td class="left-col">
+                                        <h1 class="product-name" style="text-transform: uppercase;"><?php echo esc_html($product->name); ?></h1>
                                     </td>
-                                </tr>
-                                <tr>
-                                    <td height="16"></td>
-                                </tr> <!-- spacing -->
-
-                                <tr>
-                                    <td>
-                                        <div class="vendor-name"><?php echo esc_html($store_name); ?></div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td height="8"></td>
-                                </tr> <!-- spacing -->
-
-                                <tr>
-                                    <td>
-                                        <div class="vendor-contact">
-                                            <p><?php echo wp_kses_post('<strong>Address: </strong>' . nl2br(esc_html($address))); ?></p>
-
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td height="8"></td>
-                                </tr> <!-- spacing -->
-                                <tr>
-                                    <td>
-
-                                        <strong>Tel:</strong> <a href="tel:<?php echo $tel ?>"><?php echo esc_html($tel); ?></a>
-
-
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>
-
-
-                                        <strong>Email:</strong> <a href="mailto:<?php echo $email ?>"><?php echo esc_html($email); ?></a>
-
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td height="10"></td>
-                                </tr> <!-- spacing -->
-
-                                <tr>
-                                    <td>
-                                        <!-- tier price -->
-                                        <div class="tier-prices">
-                                            <?php if (!empty($product->tiers_prices) && is_array($product->tiers_prices)): ?>
-                                                <table class="tier-price-table" style="border:1px solid #ddd;">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Quantity</th>
-                                                            <th style="text-align: right;">Price</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <?php foreach ($product->tiers_prices as $tier): ?>
-                                                            <tr>
-                                                                <td><?php echo isset($tier['quantity']) && $tier['quantity'] !== null ? number_format((int)$tier['quantity']) : 'N/A'; ?></td>
-                                                                <td style="text-align: right;">$<?php echo isset($tier['price']) && $tier['price'] !== null ? number_format((float)$tier['price'], 2) : 'N/A'; ?></td>
-                                                            </tr>
-                                                        <?php endforeach; ?>
-                                                    </tbody>
-                                                </table>
-                                            <?php endif; ?>
-                                        </div>
+                                    <td class="right-col">
+                                        <img class="hsc-logo" src="<?php echo esc_url(plugins_url('public/images/halplus-directory-logo.png', dirname(__FILE__, 2))); ?>" alt="Halplus Directory Logo">
                                     </td>
                                 </tr>
                             </table>
-                        </td>
-
-
-
-                    </tr>
-                </table>
-
-
-
-                <div class="description">
-                    <p class="title">Description</p>
-                    <?php if (!empty($product->description)) : ?>
-                        <div class="product-description">
-                            <?php echo wp_strip_all_tags($product->description); ?>
                         </div>
-                    <?php endif; ?>
-                </div>
 
-                <?php if (!empty($product->product_gallery) && is_array($product->product_gallery)): ?>
-                    <div class="gallery-section">
-                        <table class="gallery-grid" style="border-spacing: 8px 8px;">
+                        <table class="main-content-table" width="100%" cellspacing="4" cellpadding="4">
                             <tr>
-                                <?php foreach ($product->product_gallery as $i => $image_url): ?>
-                                    <td class="gallery-image" style="padding-left:5px;padding-right:5px;">
-                                        <img
-                                            style="max-height: 220px;"
-                                            src="<?php echo esc_url($image_url); ?>"
-                                            alt="Gallery Image <?php echo $i + 1; ?>">
-                                    </td>
-                                    <?php if (($i + 1) % 3 === 0 && ($i + 1) < count($product->product_gallery)): ?>
-                            </tr>
-                            <tr>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
+                                <td class="left-column" style="width:48%;border:2px solid #ddd;padding: 5px;">
+                                    <div class="feature-image">
+                                        <?php if (!empty($product->featured_image)): ?>
+                                            <?php
+                                            // Get image dimensions
+                                            $image_url = esc_url($product->featured_image);
+                                            $image_size = @getimagesize($product->featured_image);
+                                            $is_landscape = false;
+                                            if ($image_size && $image_size[0] > $image_size[1]) {
+                                                $is_landscape = true;
+                                            }
+                                            ?>
+                                            <div style="background: <?php echo $is_landscape ? '#f0f0f0' : 'none'; ?>;">
+                                                <img
+                                                    style="max-width:450px;"
+                                                    src="<?php echo $image_url; ?>"
+                                                    alt="<?php echo esc_attr($product->name); ?>">
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+
+                                <td class="right-column" width="48%" style="vertical-align:top;">
+                                    <table width="100%">
+                                        <tr>
+                                            <td>
+                                                <div class="vendor-logo">
+                                                    <?php if (!empty($logo_url)): ?>
+                                                        <img src="<?php echo esc_url($logo_url); ?>" alt="Vendor Logo" style="max-width: 120px;">
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td height="16"></td>
+                                        </tr> <!-- spacing -->
+
+                                        <tr>
+                                            <td>
+                                                <div class="vendor-name"><?php echo esc_html($store_name); ?></div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td height="8"></td>
+                                        </tr> <!-- spacing -->
+
+                                        <tr>
+                                            <td>
+                                                <div class="vendor-contact">
+                                                    <p><?php echo wp_kses_post('<strong>Address: </strong>' . nl2br(esc_html($address))); ?></p>
+
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td height="8"></td>
+                                        </tr> <!-- spacing -->
+                                        <tr>
+                                            <td>
+
+                                                <strong>Tel:</strong> <a href="tel:<?php echo $tel ?>"><?php echo esc_html($tel); ?></a>
+
+
+                                            </td>
+
+                                        </tr>
+                                        <tr>
+                                            <td>
+
+
+                                                <strong>Email:</strong> <a href="mailto:<?php echo $email ?>"><?php echo esc_html($email); ?></a>
+
+                                            </td>
+
+                                        </tr>
+                                        <tr>
+                                            <td height="10"></td>
+                                        </tr> <!-- spacing -->
+
+                                        <tr>
+                                            <td>
+                                                <!-- tier price -->
+                                                <div class="tier-prices">
+                                                    <?php if (!empty($product->tiers_prices) && is_array($product->tiers_prices)): ?>
+
+                                                        <table class="tier-price-table" style="border:1px solid #ddd;">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Quantity</th>
+                                                                    <th style="text-align: right;">Price</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php foreach ($product->tiers_prices as $tier): ?>
+                                                                    <tr>
+                                                                        <td><?php echo isset($tier['quantity']) && $tier['quantity'] !== null ? number_format((int)$tier['quantity']) : 'N/A'; ?></td>
+                                                                        <td style="text-align: right;"><?php echo isset($tier['price']) && $tier['price'] !== null ? wc_price($tier['price']) : 'N/A'; ?></td>
+                                                                    </tr>
+                                                                <?php endforeach; ?>
+                                                            </tbody>
+                                                        </table>
+
+                                                    <?php else: // ถ้าไม่มี Tier Price ให้แสดงราคาปกติ/ลดราคาแทน 
+                                                    ?>
+
+                                                        <table class="regular-price-table" width="100%" style="border:1px solid #ddd; border-collapse: separate; border-spacing: 0;">
+                                                            <tbody>
+                                                                <?php if (!empty($product->regular_price)): ?>
+                                                                    <tr style="background-color: #f5f5f5;">
+                                                                        <th style="text-align: left; font-weight: bold; padding: 12px; border-bottom: 1px solid #ddd;">
+                                                                            <?php echo !empty($product->sale_price) ? 'Sale Price' : 'Regular Price'; ?>
+                                                                        </th>
+                                                                        <td style="text-align: right; padding: 12px; border-bottom: 1px solid #ddd; <?php echo !empty($product->sale_price) ? 'text-decoration: line-through; color: #777;' : ''; ?>">
+                                                                            <?php echo wc_price($product->regular_price); ?>
+                                                                        </td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+
+                                                                <?php if (!empty($product->sale_price)): ?>
+                                                                    <tr>
+                                                                        <th style="text-align: left; font-weight: bold; padding: 12px;">Sale price</th>
+                                                                        <td style="text-align: right; font-weight: bold; color: #d63638; padding: 12px;">
+                                                                            <?php echo wc_price($product->sale_price); ?>
+                                                                        </td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                            </tbody>
+                                                        </table>
+
+                                                    <?php endif; // สิ้นสุดการเช็คเงื่อนไขราคา 
+                                                    ?>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+
                             </tr>
                         </table>
+
+                        <div class="description">
+                            <p class="title">Description</p>
+                            <?php if (!empty($product->description)) : ?>
+                                <div class="product-description">
+                                    <?php echo wp_strip_all_tags($product->description); ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <?php if (!empty($product->product_gallery) && is_array($product->product_gallery)): ?>
+                            <div class="gallery-section">
+                                <table class="gallery-grid" style="border-spacing: 8px 8px;">
+                                    <tr>
+                                        <?php foreach ($product->product_gallery as $i => $image_url): ?>
+                                            <td class="gallery-image" style="padding-left:5px;padding-right:5px;">
+                                                <img
+                                                    style="max-height: 220px;"
+                                                    src="<?php echo esc_url($image_url); ?>"
+                                                    alt="Gallery Image <?php echo $i + 1; ?>">
+                                            </td>
+                                            <?php if (($i + 1) % 3 === 0 && ($i + 1) < count($product->product_gallery)): ?>
+                                    </tr>
+                                    <tr>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                                    </tr>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($index < count($products_data) - 1): ?>
+                            <!-- <div class="page-break"></div> -->
+                        <?php endif; ?>
                     </div>
-                <?php endif; ?>
+                <?php endforeach; ?>
+            <?php endif; ?>
 
-                <?php if ($index < count($products_data) - 1): ?>
-                    <div class="page-break"></div>
-                <?php endif; ?>
+        </div>
+        
 
-            <?php endforeach; ?>
-        <?php endif; ?>
-        <htmlpagefooter name="myFooter">
-            <div id="footer">
-                Page {PAGENO} of {nb}
+            <div class="back-cover" style="page: back-cover-page;">
+                <img class="logo" src="<?php echo esc_url(plugins_url('public/images/halplus-directory-logo.png', dirname(__FILE__, 2))); ?>" alt="Halplus Directory Logo">
+                <div class="contact-info">
+                    <p><strong>Halal Plus Directory</strong></p>
+                    <p>A platform for halal products and services.</p>
+                    <p>www.halalplus.com</p>
+                </div>
+                <p style="margin-top: 50px;">Thank you for your interest in our products.</p>
             </div>
-        </htmlpagefooter>
 
+
+            <htmlpagefooter name="myFooter">
+                <div id="footer">
+                    Page {PAGENO} of {nbpg}
+                </div>
+            </htmlpagefooter>
+                      
 </body>
 
 </html>

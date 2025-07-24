@@ -178,6 +178,8 @@ class Emn_Ai
 				'description'       => $product->get_description(),
 				'featured_image'    => get_the_post_thumbnail_url($product_id, 'full'),
 				'vendor_info'       => Emn_Ai_Public::get_vendor_info_by_product_id($product_id),
+				'regular_price' => $product->get_regular_price(),
+				'sale_price'    => $product->get_sale_price(),		
 				'tiers_prices'      => $tiers_prices,
 				'product_gallery'   => $gallery_image_urls,
 				'acf_fields'        => (object) $plugin_admin->emn_get_acf($product_id),
