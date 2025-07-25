@@ -254,7 +254,17 @@ class Emn_Ai
 			$file_name = 'brochure-' . $job->log_id . '-' . time() . '.pdf';
 			$file_path = $brochure_dir . '/' . $file_name;
 
-			$mpdf = new \Mpdf\Mpdf(['tempDir' => $brochure_dir, 'fontdata' => ['garuda' => ['R' => 'Garuda.ttf', 'B' => 'Garuda-Bold.ttf']], 'default_font' => 'garuda']);
+			$mpdf = new \Mpdf\Mpdf([
+				'tempDir' => $brochure_dir,
+				'fontDir' => [$brochure_dir . '/ttfontdata'],
+				'fontdata' => [
+					'inter' => [
+						'R' => 'Inter-Regular.ttf',
+						'B' => 'Inter-Bold.ttf',
+					],
+				],
+				'default_font' => 'inter'
+			]);
 			$mpdf->WriteHTML($html_content);
 			$mpdf->Output($file_path, 'F');
 		} catch (\Mpdf\MpdfException $e) {
